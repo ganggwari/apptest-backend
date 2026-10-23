@@ -139,7 +139,7 @@ public class StreamHub {
             Map<String, Object> data = new LinkedHashMap<>();
             data.put("t", System.currentTimeMillis());
             for (Connection c : connections) {
-                send(c, SseEmitter.event().comment(PAD).name("heartbeat").data(data, MediaType.APPLICATION_JSON));
+                send(c, SseEmitter.event().comment(pad()).name("heartbeat").data(data, MediaType.APPLICATION_JSON));
             }
         });
     }
@@ -157,8 +157,18 @@ public class StreamHub {
         connections.clear();
     }
 
-    // 프록시(Render/Cloudflare 등)가 작은 조각을 모아 두었다가 늦게 내보내는 것을 막기 위한 공백 주석(약 2KB). 브라우저 JS 에는 보이지 않는다
-    private static final String PAD = " ".repeat(2048);
+    // 프록시(Render/Cloudflare 등)가 작은 조각을 모아 두었다가 늦게 내보내는 것을 막기 위한 주석 패딩(약 4KB).
+    // 압축(gzip)돼도 크기가 줄지 않도록 매번 다른 랜덤 문자로 채운다. 브라우저 JS 에는 보이지 않는다.
+    private static final String PAD_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+    private static String pad() {
+        java.util.concurrent.ThreadLocalRandom r = java.util.concurrent.ThreadLocalRandom.current();
+        StringBuilder sb = new StringBuilder(4096);
+        for (int i = 0; i < 4096; i++) {
+            sb.append(PAD_CHARS.charAt(r.nextInt(PAD_CHARS.length())));
+        }
+        return sb.toString();
+    }
 
     private SseEmitter newEmitter() {
         return new SseEmitter(60L * 60 * 1000);   // 1시간 뒤 서버가 닫는다. 프런트(EventSource)가 자동 재연결
@@ -178,7 +188,7 @@ public class StreamHub {
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("serverTime", LocalDateTime.now().withNano(0).toString());
         data.put("userType", userType);
-        send(c, SseEmitter.event().comment(PAD).name("connected").reconnectTime(3000).data(data, MediaType.APPLICATION_JSON));
+        send(c, SseEmitter.event().comment(pad()).name("connected").reconnectTime(3000).data(data, MediaType.APPLICATION_JSON));
     }
 
     // 한 연결에 전송. 같은 emitter 에 동시에 쓰지 않도록 잠그고, 실패하면 연결을 정리한다!
