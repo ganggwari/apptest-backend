@@ -1,0 +1,17 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# IDE (STS/Eclipse, IntelliJ, VS Code)
+.settings/
+.classpath
+.project
+bin/
+.idea/
+*.iml
+.vscode/
+
+# 로컬 설정·업로드 파일
+src/main/resources/application-secret.properties
+uploads/

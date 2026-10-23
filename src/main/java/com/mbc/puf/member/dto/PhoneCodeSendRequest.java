@@ -1,0 +1,18 @@
+package com.mbc.puf.member.dto;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+
+/** 고객 가입용 전화번호 인증코드 발송 요청 */
+public class PhoneCodeSendRequest {
+
+    @NotBlank(message = "전화번호는 필수입니다.")
+    @Pattern(regexp = "^\\d{2,3}-?\\d{3,4}-?\\d{4}$", message = "전화번호 형식이 올바르지 않습니다. (예: 010-1234-5678)")
+    private String phone;
+
+    public PhoneCodeSendRequest() {
+    }
+
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
+}
