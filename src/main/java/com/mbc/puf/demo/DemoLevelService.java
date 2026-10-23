@@ -58,21 +58,21 @@ public class DemoLevelService {
     private final RiskPolicy policy;
     private final DemoInternalApi api;
     private final DbClock dbClock;
-    private final List<String> targetNames;
+    private final List<Long> targetIds;
     private final BigDecimal severeExtraCm;
 
     private final Map<Long, Pin> pins = new ConcurrentHashMap<>();
 
     public DemoLevelService(UnderpassRepository underpassRepository, ThresholdRepository thresholdRepository,
                             RiskPolicy policy, DemoInternalApi api, DbClock dbClock,
-                            @Value("${puf.demo.level-targets:초량지하차도,북항지하차도,충장지하차도}") String targets,
+                            @Value("${puf.demo.level-target-ids:1,14,15}") String targets,
                             @Value("${puf.risk.water.severe-extra-cm:15}") BigDecimal severeExtraCm) {
         this.underpassRepository = underpassRepository;
         this.thresholdRepository = thresholdRepository;
         this.policy = policy;
         this.api = api;
         this.dbClock = dbClock;
-        this.targetNames = Arrays.stream(targets.split(",")).map(String::trim).filter(s -> !s.isEmpty()).toList();
+        this.targetIds = Arrays.stream(targets.split(",")).map(String::trim).filter(x -> !x.isEmpty()).map(Long::valueOf).toList();
         this.severeExtraCm = severeExtraCm;
     }
 
@@ -80,13 +80,11 @@ public class DemoLevelService {
         return pins.containsKey(underpassId);
     }
 
-    /** 시연 대상 지하차도 (이름으로 찾는다) */
+    /** 시연 대상 지하차도 (id 로 찾는다. 시드 기준 초량=1, 북항=14, 충장=15) */
     public List<Underpass> targets() {
         List<Underpass> result = new ArrayList<>();
-        for (String name : targetNames) {
-            underpassRepository.findAll().stream()
-                    .filter(u -> !u.isDeleted() && name.equals(u.getName()))
-                    .findFirst().ifPresent(result::add);
+        for (Long id : targetIds) {
+            underpassRepository.findById(id).filter(u -> !u.isDeleted()).ifPresent(result::add);
         }
         return result;
     }
