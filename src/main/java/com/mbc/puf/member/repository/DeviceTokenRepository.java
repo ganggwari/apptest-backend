@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
 import org.springframework.transaction.annotation.Transactional;
 
 import com.mbc.puf.member.entity.DeviceToken;
@@ -19,14 +20,14 @@ public interface DeviceTokenRepository extends JpaRepository<DeviceToken, Long> 
     // 그 고객의 사용 중인 토큰 (알림 발송 대상)
     List<DeviceToken> findByCustomerIdAndActiveTrueOrderByIdAsc(Long customerId);
 
-    // 전체 공지 푸시 대상: 사용 중인 모든 토큰
-    List<DeviceToken> findAllByActiveTrue();
+    // 사용 중인 모든 토큰 (전체 고객 대상 푸시용)
+    List<DeviceToken> findByActiveTrue();
 
-    // FCM 이 "없는 토큰"이라고 알려 준 토큰 사용 중지 (행은 보존)
-    @Transactional
+    // 만료된 토큰 한 개 사용 중지 (행은 보존)
     @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("update DeviceToken t set t.active = false where t.token = :token and t.active = true")
-    int deactivateByToken(@Param("token") String token);
+    @Transactional
+    @Query("update DeviceToken t set t.active = false where t.id = :id")
+    int deactivateById(@Param("id") Long id);
 
     // 고객 탈퇴: 그 고객 토큰 전부 사용 중지 (행은 보존)
     @Modifying(clearAutomatically = true, flushAutomatically = true)

@@ -28,7 +28,7 @@ import jakarta.annotation.PreDestroy;
  *
  * - 연결 유형 두 가지: 고객 스트림(/api/stream, 비로그인 포함) / 관리자 스트림(/api/admin/stream)
  * - 전송은 전용 스레드 1개가 순서대로 처리한다 (느린 클라이언트가 DB 처리 스레드를 붙잡지 않게)
- * - 15초마다(설정 가능) heartbeat 이벤트를 보내 프록시가 연결을 끊지 않게 하고, 끊어진 연결을 정리한다
+ * - 30초마다 heartbeat(주석 줄)를 보내 프록시가 연결을 끊지 않게 하고, 끊어진 연결을 정리한다
  * - 재연결 시 놓친 이벤트를 다시 보내지는 않는다. 프런트가 'connected' 이벤트를 받으면 REST 로 현재 상태를 다시 읽는다
  */
 @Component
@@ -124,17 +124,11 @@ public class StreamHub {
         return regionId == null || c.regionIds.contains(regionId);
     }
 
-    // 주기적으로 heartbeat 이벤트(기본 15초, puf.stream.heartbeat-seconds).
-    //  - 프록시(Render, Nginx 등)가 데이터 없는 유휴 연결을 끊지 않게 한다
-    //  - 죽은 연결을 청소한다 (전송이 실패한 연결은 목록에서 빠진다)
-    //  - 이름 있는 이벤트(heartbeat)로 보낸다: 주석 줄(": ping")은 브라우저 JS 에 안 보이지만, 이 이벤트는 보여서
-    //    프런트가 "한동안 신호가 없으면 연결이 죽은 것" 으로 판단해 다시 연결할 수 있다 (앱이 백그라운드에서 돌아온 직후 등)
-    // 느린 클라이언트가 공용 스케줄러 스레드를 붙잡지 않도록 전송 전용 스레드에서 보낸다
+    // 30초마다 heartbeat. 프록시(Nginx 등)의 유휴 연결 끊김 방지 + 죽은 연결 청소
+    // A 4 KiB randomized SSE comment discourages proxy buffering; named events let clients detect stalls.
     @Scheduled(fixedRateString = "#{${puf.stream.heartbeat-seconds:15} * 1000}")
     public void heartbeat() {
-        if (connections.isEmpty()) {
-            return;
-        }
+        if (connections.isEmpty()) return;
         sender.execute(() -> {
             Map<String, Object> data = new LinkedHashMap<>();
             data.put("t", System.currentTimeMillis());
@@ -142,6 +136,14 @@ public class StreamHub {
                 send(c, SseEmitter.event().comment(pad()).name("heartbeat").data(data, MediaType.APPLICATION_JSON));
             }
         });
+    }
+
+    private static final String PAD_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    private static String pad() {
+        var random = java.util.concurrent.ThreadLocalRandom.current();
+        StringBuilder out = new StringBuilder(4096);
+        for (int i = 0; i < 4096; i++) out.append(PAD_CHARS.charAt(random.nextInt(PAD_CHARS.length())));
+        return out.toString();
     }
 
     @PreDestroy
@@ -155,19 +157,6 @@ public class StreamHub {
             }
         }
         connections.clear();
-    }
-
-    // 프록시(Render/Cloudflare 등)가 작은 조각을 모아 두었다가 늦게 내보내는 것을 막기 위한 주석 패딩(약 4KB).
-    // 압축(gzip)돼도 크기가 줄지 않도록 매번 다른 랜덤 문자로 채운다. 브라우저 JS 에는 보이지 않는다.
-    private static final String PAD_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-
-    private static String pad() {
-        java.util.concurrent.ThreadLocalRandom r = java.util.concurrent.ThreadLocalRandom.current();
-        StringBuilder sb = new StringBuilder(4096);
-        for (int i = 0; i < 4096; i++) {
-            sb.append(PAD_CHARS.charAt(r.nextInt(PAD_CHARS.length())));
-        }
-        return sb.toString();
     }
 
     private SseEmitter newEmitter() {
@@ -188,7 +177,7 @@ public class StreamHub {
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("serverTime", LocalDateTime.now().withNano(0).toString());
         data.put("userType", userType);
-        send(c, SseEmitter.event().comment(pad()).name("connected").reconnectTime(3000).data(data, MediaType.APPLICATION_JSON));
+        send(c, SseEmitter.event().name("connected").reconnectTime(3000).data(data, MediaType.APPLICATION_JSON));
     }
 
     // 한 연결에 전송. 같은 emitter 에 동시에 쓰지 않도록 잠그고, 실패하면 연결을 정리한다!

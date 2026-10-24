@@ -16,11 +16,13 @@ public class ManagerNotificationItem {
     private final String refType;
     private final Long refId;
     private final boolean read;
+    private final boolean urgent;   // 긴급 알림 여부
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm")
     private final LocalDateTime createdAt;
 
     public ManagerNotificationItem(Long id, ManagerNotificationCategory category, Long regionId, String title,
-                                   String body, String refType, Long refId, boolean read, LocalDateTime createdAt) {
+                                   String body, String refType, Long refId, boolean read, boolean urgent,
+                                   LocalDateTime createdAt) {
         this.id = id;
         this.category = category;
         this.regionId = regionId;
@@ -29,6 +31,7 @@ public class ManagerNotificationItem {
         this.refType = refType;
         this.refId = refId;
         this.read = read;
+        this.urgent = urgent;
         this.createdAt = createdAt;
     }
 
@@ -40,5 +43,6 @@ public class ManagerNotificationItem {
     public String getRefType() { return refType; }
     public Long getRefId() { return refId; }
     public boolean isRead() { return read; }
+    public boolean isUrgent() { return urgent; }
     public LocalDateTime getCreatedAt() { return createdAt; }
 }

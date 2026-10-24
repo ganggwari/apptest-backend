@@ -66,6 +66,17 @@ public class DemoInternalApi {
         post("/api/internal/water-levels", body);
     }
 
+    /** GET /api/internal/pm/equipments → data 배열 */
+    public JsonNode pmEquipments() {
+        JsonNode body = client().get().uri("/api/internal/pm/equipments").retrieve().body(JsonNode.class);
+        return body == null ? null : body.get("data");
+    }
+
+    /** POST /api/internal/pm-scores (예지보전 서버가 하는 것과 같은 점수 수신) */
+    public void postPmScores(Map<String, Object> body) {
+        post("/api/internal/pm-scores", body);
+    }
+
     private void post(String path, Map<String, Object> body) {
         client().post().uri(path).header("Content-Type", "application/json").body(body).retrieve().toBodilessEntity();
     }

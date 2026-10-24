@@ -1,0 +1,61 @@
+#app button.theme-toggle {
+  --ui-control-size: 56px;
+  width: 56px;
+  min-width: 56px;
+  max-width: 56px;
+  flex: 0 0 56px;
+  padding: 0;
+  border: 0!important;
+  border-radius: 20px;
+  background: transparent!important;
+  box-shadow: none;
+}
+.theme-switch-visual {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-around;
+  flex: 0 0 52px;
+  width: 52px;
+  height: 28px;
+  border: 1px solid #b8c6d2;
+  border-radius: 16px;
+  background: #e7edf2;
+  color: #596d7e;
+  box-sizing: border-box;
+}
+.theme-switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px #192f4826;
+  transition: transform .18s ease;
+}
+#app .theme-switch-visual svg {
+  position: relative;
+  inset: auto;
+  z-index: 1;
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  flex: 0 0 16px;
+}
+.theme-switch-visual .theme-switch-sun { color: #95651e; }
+:root[data-theme=dark] .theme-switch-visual {
+  background: #303c47;
+  border-color: #657787;
+  color: #9eacb8;
+}
+:root[data-theme=dark] .theme-switch-thumb {
+  transform: translateX(24px);
+  background: #c4d8e8;
+}
+:root[data-theme=dark] .theme-switch-visual .theme-switch-sun { color: #a8b4be; }
+:root[data-theme=dark] .theme-switch-visual .theme-switch-moon { color: #243c50; }
+@media (prefers-reduced-motion:reduce) {
+  .theme-switch-thumb { transition: none; }
+}

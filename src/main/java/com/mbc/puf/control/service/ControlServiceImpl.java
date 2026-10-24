@@ -127,13 +127,20 @@ public class ControlServiceImpl implements ControlService {
     }
 
     // 차단/해제 직후: 공개 이벤트(지도·목록 갱신) + 담당 지역 관리자 알림(위험). 커밋 뒤에 전송된다
-    private void publishControlChange(Underpass underpass, UnderpassCurrentStatus status, String detail) {
+    // auto 가 true(수위 기준 자동 차단)면 긴급 알림: 담당 관리자 화면에 긴급 팝업 + 푸시 긴급
+    private void publishControlChange(Underpass underpass, UnderpassCurrentStatus status, String detail, boolean auto) {
         streamPublisher.publishPublic("control-change", underpass.getRegionId(),
                 new StreamPayloads.ControlChange(underpass.getId(), underpass.getName(), status, LocalDateTime.now()));
         boolean blocked = status == UnderpassCurrentStatus.BLOCKED;
-        notificationService.notifyManagers(ManagerNotificationCategory.RISK, underpass.getRegionId(),
-                blocked ? "지하차도 통제(차단)" : "지하차도 통제 해제",
-                underpass.getName() + (detail == null || detail.isBlank() ? "" : " — " + detail), "UNDERPASS", underpass.getId());
+        String title = blocked ? (auto ? "지하차도 자동 차단" : "지하차도 통제(차단)") : "지하차도 통제 해제";
+        String body = underpass.getName() + (detail == null || detail.isBlank() ? "" : " — " + detail);
+        if (blocked && auto) {
+            notificationService.notifyManagersUrgent(ManagerNotificationCategory.RISK, underpass.getRegionId(), title, body,
+                    "UNDERPASS", underpass.getId());
+        } else {
+            notificationService.notifyManagers(ManagerNotificationCategory.RISK, underpass.getRegionId(), title, body,
+                    "UNDERPASS", underpass.getId());
+        }
     }
 
     // ─────────────────────────── 사유 프리셋 ───────────────────────────
@@ -216,7 +223,7 @@ public class ControlServiceImpl implements ControlService {
 
         // 3) IN_TRANSIT → REMAINING 일괄 처리 (이 호출이 영속성 컨텍스트를 비우므로 엔티티 수정은 위에서 끝낸다)
         transitRepository.markRemaining(underpassId);
-        publishControlChange(underpass, UnderpassCurrentStatus.BLOCKED, auto ? reason : null);
+        publishControlChange(underpass, UnderpassCurrentStatus.BLOCKED, auto ? reason : null, auto);
         streamPublisher.publishToAdmins(underpass.getRegionId(), "transit-update",
                 new StreamPayloads.TransitUpdate(underpassId, "REMAINING", null, null));
 
@@ -269,7 +276,7 @@ public class ControlServiceImpl implements ControlService {
         // 2) 지하차도 상태 갱신
         underpass.setCurrentStatus(UnderpassCurrentStatus.NORMAL);
         underpass.setCurrentBlockEventId(null);
-        publishControlChange(underpass, UnderpassCurrentStatus.NORMAL, null);
+        publishControlChange(underpass, UnderpassCurrentStatus.NORMAL, null, false);
 
         // 3) 전광판 문구를 다시 맞춘다 (해제 → 초록 "통행 재개" 페이지, 일정 시간 뒤 사라짐)
         vmsDisplayService.reconcileForUnderpass(underpassId, event.getId(), loginUser.id());

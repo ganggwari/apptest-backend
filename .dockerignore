@@ -2,3 +2,7 @@ build
 .gradle
 .git
 **/application-secret.properties
+front
+**/node_modules
+**/dist
+**/.env.local

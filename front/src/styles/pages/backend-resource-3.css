@@ -1,0 +1,27 @@
+.notice-category-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.notice-category-tabs button {
+  padding: 9px 20px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+}
+.notice-category-tabs button[aria-pressed=true] {
+  background: #225f9b;
+  color: white;
+}
+.alert-log-return {
+  display: inline-block;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+button:disabled {
+  cursor: default;
+  opacity: .45;
+}

@@ -1,0 +1,246 @@
+/* Compact desktop header; narrower screens keep separate rows without overlap. */
+.customer-shell .customer-header .customer-header-scroll {
+  overflow: visible;
+  width: 100%;
+  min-width: 0;
+}
+.customer-shell .customer-header .customer-header-inner {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+.customer-shell .customer-header .customer-header-inner {
+  display: grid;
+  grid-template-columns: auto minmax(0,1fr);
+  grid-template-rows: auto auto;
+  min-width: 0;
+  min-height: 0;
+  padding: 12px 0;
+  gap: 10px 20px;
+  align-items: center;
+}
+.customer-shell .customer-header .customer-logo {
+  grid-column: 1;
+  grid-row: 1;
+  font-size: 24px;
+  line-height: 32px;
+  white-space: nowrap;
+}
+.customer-shell .customer-header .customer-member-nav {
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  min-width: 0;
+  gap: 8px;
+}
+.customer-shell .customer-header .customer-main-nav {
+  grid-column: 1/-1;
+  grid-row: 2;
+  display: grid;
+  grid-template-columns: repeat(4,minmax(0,1fr));
+  width: 100%;
+  gap: 8px;
+  justify-self: stretch;
+}
+.customer-shell .customer-header .customer-menu {
+  min-width: 0;
+}
+.customer-shell .customer-header .customer-menu-link,.customer-shell .customer-header .customer-menu-link.router-link-exact-active {
+  text-decoration: none;
+}
+.customer-shell .customer-header .customer-menu-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  height: auto;
+  padding: 10px 4px;
+  font-size: 16px;
+  line-height: 24px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+.customer-shell .customer-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+/* Opening the dropdown must not resize the header or move the page. */
+.customer-shell .customer-header .customer-header-dropdown {
+  position: absolute;
+  inset: 100% 0 auto;
+  display: block;
+  width: 100%;
+  padding-inline: inherit;
+  box-sizing: border-box;
+  max-height: 60dvh;
+  overflow: auto;
+  box-shadow: 0 8px 16px #00000012;
+  border: 0;
+}
+.customer-shell .customer-header .header-dropdown-columns {
+  grid-column: 1/-1;
+  display: grid;
+  grid-template-columns: repeat(4,minmax(0,1fr));
+  width: 100%;
+  gap: 8px;
+  min-height: 0;
+  padding: 0 0 12px;
+}
+.customer-shell .customer-header .header-dropdown-column {
+  min-width: 0;
+  gap: 4px;
+}
+.customer-shell .customer-header .header-dropdown-column a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 6px 4px;
+  font-size: 14px;
+  line-height: 22px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+@media (min-width:1400px) {
+  .customer-shell .customer-header .customer-header-inner {
+    grid-template-columns: minmax(0,1fr) minmax(0,680px) minmax(0,1fr);
+    grid-template-rows: auto;
+    min-height: 64px;
+    padding: 4px 0;
+    gap: 16px;
+  }
+  .customer-shell .customer-header .customer-main-nav {
+    grid-column: 2;
+    grid-row: 1;
+    max-width: 680px;
+    justify-self: center;
+    gap: 16px;
+  }
+  .customer-shell .customer-header .customer-member-nav {
+    grid-column: 3;
+    grid-row: 1;
+    flex-wrap: wrap;
+    max-width: 100%;
+  }
+  .customer-shell .customer-header .customer-header-dropdown {
+    display: grid;
+    grid-template-columns: minmax(0,1fr) minmax(0,680px) minmax(0,1fr);
+    column-gap: 16px;
+  }
+  .customer-shell .customer-header .header-dropdown-columns {
+    grid-column: 2;
+    max-width: 680px;
+    justify-self: center;
+    margin: 0;
+    gap: 16px;
+  }
+}
+.customer-shell .customer-page-body {
+  min-width: 0;
+  max-width: 100%;
+}
+.customer-shell .customer-content :is(h1,h2,h3,p,li,dd) {
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+.customer-shell .routel-company-context,.customer-shell .routel-services {
+  grid-template-columns: repeat(2,minmax(0,1fr));
+}
+.customer-shell .routel-company-context>*,.customer-shell .routel-services>* {
+  min-width: 0;
+}
+/* Let the whole page grow with the details; viewport height cannot cut off actions. */
+.customer-shell .customer-page-body .wire-page.page-c-map .app.map-swap-layout {
+  height: auto!important;
+  min-height: 0;
+  grid-template-columns: minmax(0,1fr) 340px!important;
+  align-items: stretch;
+}
+.customer-shell .customer-page-body .wire-page.page-c-map .app.map-swap-layout>.mapw {
+  grid-column: 1;
+  grid-row: 1;
+  height: auto;
+  min-height: clamp(480px,65dvh,780px);
+}
+.customer-shell .customer-page-body .wire-page.page-c-map .app.map-swap-layout>aside {
+  grid-column: 2;
+  grid-row: 1;
+  height: auto;
+  max-height: none;
+  min-height: 0;
+  overflow: visible;
+}
+.customer-shell .customer-page-body .wire-page.page-c-map .swapped-detail .det {
+  height: auto;
+  max-height: none;
+  min-width: 0;
+  overflow: visible;
+}
+.customer-shell .page-c-map .det :is(p,.name,.addr,.sub) {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.customer-shell .page-c-map .det :is(button,a.btn) {
+  max-width: 100%;
+  height: auto;
+  min-height: 44px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.customer-shell .page-c-map #tr svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.customer-shell .page-c-map .kv>* {
+  min-width: 0;
+}
+@media (max-width:1100px) {
+  .customer-shell .customer-page-body .wire-page.page-c-map .app.map-swap-layout {
+    grid-template-columns: minmax(0,1fr)!important;
+  }
+  .customer-shell .customer-page-body .wire-page.page-c-map .app.map-swap-layout>.mapw {
+    grid-column: 1;
+    grid-row: 1;
+    height: clamp(360px,55dvh,600px);
+    min-height: 360px;
+  }
+  .customer-shell .customer-page-body .wire-page.page-c-map .app.map-swap-layout>aside {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .customer-shell .routel-company-context,.customer-shell .routel-services {
+    grid-template-columns: minmax(0,1fr);
+  }
+}
+@media (max-width:600px) {
+  .customer-shell .customer-header .customer-header-inner {
+    grid-template-columns: minmax(0,1fr);
+    gap: 8px;
+  }
+  .customer-shell .customer-header .customer-member-nav {
+    grid-column: 1;
+    grid-row: 2;
+    justify-content: flex-start;
+  }
+  .customer-shell .customer-header .customer-main-nav {
+    grid-row: 3;
+  }
+  .customer-shell .customer-header .customer-menu-link {
+    font-size: 13px;
+    line-height: 20px;
+  }
+  .customer-shell .customer-header .header-dropdown-column a {
+    font-size: 12px;
+    line-height: 20px;
+  }
+  .customer-shell .page-c-map .map-status-legend {
+    font-size: 11px;
+    gap: 8px;
+  }
+}

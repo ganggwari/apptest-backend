@@ -1,0 +1,168 @@
+﻿/* Shared overlay spacing. Keep existing dialog actions, anchors and positioning. */
+:root dialog[class], #app dialog {
+  --overlay-space: 28px;
+  --overlay-section: 22px;
+  box-sizing: border-box;
+  max-width: min(720px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  border: 1px solid var(--r-line, #dbe3ed);
+  border-radius: 18px;
+  background: var(--r-surface, #fff);
+  color: var(--r-ink, #172d48);
+  box-shadow: 0 22px 70px #102d4c30;
+  font-family: var(--r-font, inherit);
+  font-size: 14px;
+  line-height: 1.65;
+  overscroll-behavior: contain;
+}
+:root dialog::backdrop { background: #10243d80; }
+:root dialog[class] :is(h2,h3,p,li,dd), #app dialog :is(h2,h3,p,li,dd) { overflow-wrap: anywhere; }
+:root dialog[class] h2, #app dialog h2 { line-height: 1.4; letter-spacing: -.025em; }
+:root dialog[class] :is(p,li,dd), #app dialog :is(p,li,dd) { line-height: 1.7; }
+:root dialog[class] :is(header,.dlg-h)>button, #app dialog :is(header,.dlg-h)>button { flex-shrink: 0; }
+:root dialog[class] :is(input,select,textarea), #app dialog :is(input,select,textarea) { box-sizing: border-box; min-width: 0; max-width: 100%; font: inherit; }
+:root dialog[class] :is(input,select,textarea):focus-visible, #app dialog :is(input,select,textarea):focus-visible { outline: 2px solid var(--r-focus, #3678db); outline-offset: 2px; }
+
+/* API-backed create/edit/control forms, including police handover. */
+:root dialog.service-modal, #app dialog.service-modal { width: min(720px, calc(100vw - 32px)); padding: var(--overlay-space); overflow: auto; }
+:root dialog.service-modal.service-app-modal, #app dialog.service-modal.service-app-modal { width: min(398px, calc(100vw - 24px)); }
+:root dialog.service-modal>form, #app dialog.service-modal>form { min-width: 0; margin: 0; }
+:root dialog.service-modal>form>header, #app dialog.service-modal>form>header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin: 0 0 var(--overlay-section);
+  padding: 0 0 var(--overlay-section);
+  border-bottom: 1px solid var(--r-line);
+}
+:root dialog.service-modal>form>header h2, #app dialog.service-modal>form>header h2 { min-width: 0; margin: 4px 0 0; font-size: 21px; }
+:root dialog.service-modal>form>p, #app dialog.service-modal>form>p { margin: 0 0 20px; }
+:root dialog.service-modal .service-form-fields, #app dialog.service-modal .service-form-fields { gap: 20px 18px; margin: 0; }
+:root dialog.service-modal .service-form-fields>label, #app dialog.service-modal .service-form-fields>label { gap: 9px; margin: 0; line-height: 1.6; }
+:root dialog.service-modal .required-guide, #app dialog.service-modal .required-guide { padding: 0 0 2px; color: var(--r-muted); line-height: 1.7; }
+:root dialog.service-modal .service-field-label, #app dialog.service-modal .service-field-label { font-size: 13px; font-weight: 600; }
+:root dialog.service-modal .service-form-fields :where(input:not([type=checkbox]):not([type=radio]),select,textarea),
+#app dialog.service-modal .service-form-fields :where(input:not([type=checkbox]):not([type=radio]),select,textarea) { width: 100%; min-height: 44px; padding: 11px 13px; border-radius: 9px; line-height: 1.5; }
+:root dialog.service-modal .service-form-fields textarea, #app dialog.service-modal .service-form-fields textarea { min-height: 112px; resize: vertical; }
+:root dialog.service-modal .service-form-fields input:is([type=checkbox],[type=radio]), #app dialog.service-modal .service-form-fields input:is([type=checkbox],[type=radio]) { flex-shrink: 0; width: 18px; height: 18px; min-height: 18px; margin: 3px 0; }
+:root dialog.service-modal .service-detail, #app dialog.service-modal .service-detail { margin: 0 0 22px; gap: 16px 18px; }
+:root dialog.service-modal .service-detail dt, #app dialog.service-modal .service-detail dt { color: var(--r-muted); }
+:root dialog.service-modal .service-detail dd, #app dialog.service-modal .service-detail dd { min-width: 0; margin: 0; }
+:root dialog.service-modal .service-actions, #app dialog.service-modal .service-actions { gap: 10px; margin-top: 22px; }
+:root dialog.service-modal>form>footer, #app dialog.service-modal>form>footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 26px 0 0;
+  padding: 20px 0 0;
+  border-top: 1px solid var(--r-line);
+}
+:root dialog.service-modal>form>footer>button, #app dialog.service-modal>form>footer>button { min-height: 44px; min-width: 88px; padding: 10px 18px; line-height: 1.5; border-radius: 9px; }
+#app dialog.restored-summary-drawer { width: min(440px, 100vw); max-width: 100vw; max-height: 100dvh; border-radius: 0; }
+
+/* Older dialogs already divide their contents into header/body/footer. */
+#app dialog:has(.dlg-h) { padding: 0; overflow: auto; }
+#app dialog .dlg-h { gap: 18px; padding: 22px var(--overlay-space); border-color: var(--r-line); }
+#app dialog .dlg-h h2 { margin: 0; font-size: 20px; }
+#app dialog .dlg-b { min-width: 0; padding: 24px var(--overlay-space); gap: 20px; }
+#app dialog .dlg-b>p { margin: 0; }
+#app dialog .dlg-b .field { gap: 8px; min-width: 0; }
+#app dialog .dlg-b :where(input:not([type=checkbox]):not([type=radio]),select,textarea) { min-height: 44px; padding: 11px 13px; line-height: 1.5; border-radius: 9px; }
+#app dialog .dlg-b textarea { min-height: 112px; }
+#app dialog .dlg-b :is(.grid2,.form-grid) { gap: 18px; }
+#app dialog .dlg-f { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; padding: 20px var(--overlay-space); border-color: var(--r-line); }
+#app dialog .dlg-f>button { min-height: 44px; min-width: 88px; padding: 10px 18px; line-height: 1.5; border-radius: 9px; }
+
+/* Account confirmation and operational notices. */
+#app dialog:is(.account-withdraw,.overview-control-notice) { padding: var(--overlay-space); overflow: auto; }
+#app dialog.account-withdraw form { margin: 0; }
+#app dialog.account-withdraw h2 { margin: 0 0 22px; font-size: 21px; }
+#app dialog.account-withdraw form>p { margin: 0 0 20px; }
+#app dialog.account-withdraw form>label { gap: 9px; margin: 18px 0; }
+#app dialog.account-withdraw form>div:last-child { gap: 10px; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--r-line); }
+#app dialog.account-withdraw form>div:last-child>button { min-height: 44px; padding: 10px 16px; }
+#app dialog.overview-control-notice h2 { margin-top: 0; }
+#app dialog.overview-control-notice p { margin: 16px 0 22px; }
+:root dialog.admin-handover, #app dialog.admin-handover { padding: 0; overflow: auto; }
+:root dialog.admin-handover>header, #app dialog.admin-handover>header { padding: 22px var(--overlay-space); gap: 20px; }
+:root dialog.admin-handover .handover-body, #app dialog.admin-handover .handover-body { padding: 24px var(--overlay-space); }
+:root dialog.admin-handover>footer, #app dialog.admin-handover>footer { padding: 20px var(--overlay-space); gap: 12px; flex-wrap: wrap; }
+:root dialog.admin-handover .handover-summary, #app dialog.admin-handover .handover-summary { background: var(--r-soft); border-color: var(--r-line); padding: 20px; }
+:root dialog.admin-handover :is(header p,.handover-summary p,.handover-summary small), #app dialog.admin-handover :is(header p,.handover-summary p,.handover-summary small) { color: var(--r-muted); }
+
+/* Teleported notifications use the same spacing in all four shells. */
+:root .customer-notification-popup { --overlay-space: 22px; max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); border-radius: 16px; }
+:root .customer-notification-popup>header { gap: 14px; padding: 17px var(--overlay-space); }
+:root .customer-notification-popup>header h2 { line-height: 1.5; }
+:root .customer-notification-popup>header button { flex-shrink: 0; width: 36px; height: 36px; }
+:root .customer-notification-popup .notification-popup-body { overscroll-behavior: contain; }
+:root .customer-notification-popup .notification-popup-body a { gap: 7px; padding: 18px var(--overlay-space); }
+:root .customer-notification-popup .notification-popup-body :is(strong,span,time) { line-height: 1.6; }
+:root .customer-notification-popup .notification-popup-body>p { padding: 22px var(--overlay-space); }
+:root .customer-notification-popup>footer { padding: 17px var(--overlay-space); line-height: 1.6; }
+
+/* Video/device dialogs retain the original player dimensions and controls. */
+:root dialog.traffic-device-dialog, #app dialog.traffic-device-dialog,
+:root dialog.busan-cctv-modal, #app dialog.busan-cctv-modal,
+#app dialog.cctv-dialog { padding: var(--overlay-space); overflow: auto; }
+:root dialog.traffic-device-dialog>header, #app dialog.traffic-device-dialog>header,
+:root dialog.busan-cctv-modal>header, #app dialog.busan-cctv-modal>header,
+#app dialog.cctv-dialog>.cctv-dialog-header { gap: 16px; margin: 0 0 20px; padding: 0 0 18px; border-bottom: 1px solid var(--r-line); }
+:root dialog.traffic-device-dialog>h2, #app dialog.traffic-device-dialog>h2 { margin: 0 0 12px; font-size: 20px; }
+:root dialog.traffic-device-dialog>p, #app dialog.traffic-device-dialog>p { margin: 12px 0 18px; }
+:root dialog.traffic-device-dialog>small, #app dialog.traffic-device-dialog>small { margin-top: 18px; color: var(--r-muted); }
+:root dialog.traffic-device-dialog header button, #app dialog.traffic-device-dialog header button { background: var(--r-soft); color: var(--r-ink); }
+:root dialog.traffic-device-dialog .traffic-device-list>li>button { padding: 14px 12px; gap: 14px; }
+
+/* Embedded search, verification and route information keep their own bodies. */
+:root dialog.postcode-search-dialog, #app dialog.postcode-search-dialog,
+:root dialog.pass-signup-dialog, #app dialog.pass-signup-dialog,
+#app dialog.navigation-detail-dialog { padding: 0; }
+:root dialog.postcode-search-dialog, #app dialog.postcode-search-dialog { overflow: hidden; }
+:root dialog.postcode-search-dialog>header, #app dialog.postcode-search-dialog>header,
+#app dialog.navigation-detail-dialog>header { gap: 16px; padding: 20px var(--overlay-space); border-color: var(--r-line); }
+:root dialog.postcode-search-dialog>p, #app dialog.postcode-search-dialog>p { margin: 18px var(--overlay-space); }
+:root dialog.pass-signup-dialog>header, #app dialog.pass-signup-dialog>header { padding: 20px 64px 20px var(--overlay-space); border-color: var(--r-line); }
+:root dialog.pass-signup-dialog>section, #app dialog.pass-signup-dialog>section { padding: 26px var(--overlay-space); }
+:root dialog.pass-signup-dialog>footer, #app dialog.pass-signup-dialog>footer { padding: 18px var(--overlay-space); border-color: var(--r-line); }
+#app dialog.navigation-detail-dialog .navigation-detail-content { padding: 22px var(--overlay-space); overscroll-behavior: contain; }
+#app dialog.navigation-detail-dialog .navigation-guide-list>li>button,
+#app dialog.navigation-detail-dialog .directions-camera-list>li>button { padding: 14px 12px; gap: 14px; }
+#app dialog.navigation-detail-dialog .directions-weather { gap: 12px; }
+
+/* The chatbot remains a drawer; only its internal rhythm changes. */
+:root dialog.public-chat-dialog, #app dialog.public-chat-dialog { max-width: 100vw; max-height: 100dvh; border-radius: 0; padding: 0; overflow: hidden; }
+:root dialog.public-chat-dialog .public-chat-header, #app dialog.public-chat-dialog .public-chat-header { padding: 22px 24px; gap: 18px; }
+:root dialog.public-chat-dialog .public-chat-description, #app dialog.public-chat-dialog .public-chat-description { margin: 0; padding: 18px 24px; color: var(--r-muted); }
+:root dialog.public-chat-dialog .chat-messages, #app dialog.public-chat-dialog .chat-messages { padding: 18px 24px 24px; gap: 14px; }
+:root dialog.public-chat-dialog .chat-messages li, #app dialog.public-chat-dialog .chat-messages li { padding: 16px; }
+:root dialog.public-chat-dialog .public-chat-form, #app dialog.public-chat-dialog .public-chat-form { padding: 20px 24px; }
+
+@media (max-width:600px) {
+  :root dialog[class], #app dialog { --overlay-space: 20px; --overlay-section: 18px; max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); border-radius: 15px; }
+  #app dialog.restored-summary-drawer { max-width: 100vw; max-height: 100dvh; border-radius: 0; }
+  :root dialog.public-chat-dialog, #app dialog.public-chat-dialog { max-width: 100vw; max-height: 100dvh; border-radius: 0; }
+  :root dialog.service-modal>form>header h2, #app dialog.service-modal>form>header h2,
+  #app dialog .dlg-h h2 { font-size: 19px; }
+  :root dialog.service-modal .service-form-fields, #app dialog.service-modal .service-form-fields { grid-template-columns: minmax(0,1fr); gap: 18px; }
+  :root dialog.service-modal .service-detail, #app dialog.service-modal .service-detail { grid-template-columns: 88px minmax(0,1fr); gap: 14px 12px; }
+  :root dialog.service-modal>form>header, #app dialog.service-modal>form>header { gap: 12px; }
+  :root dialog.service-modal>form>footer>button, #app dialog.service-modal>form>footer>button,
+  #app dialog .dlg-f>button { flex: 1; min-width: 0; }
+  #app dialog .dlg-b { padding-block: 22px; }
+  #app dialog .dlg-b :is(.grid2,.form-grid) { grid-template-columns: minmax(0,1fr); }
+  #app dialog.account-withdraw form>div:last-child>button { flex: 1; }
+  :root .customer-notification-popup { --overlay-space: 18px; }
+  :root dialog.admin-handover .handover-summary, #app dialog.admin-handover .handover-summary { padding: 16px; }
+  :root dialog.public-chat-dialog .public-chat-header, #app dialog.public-chat-dialog .public-chat-header { padding: 20px; }
+  :root dialog.public-chat-dialog .public-chat-description, #app dialog.public-chat-dialog .public-chat-description { padding: 16px 20px; }
+  :root dialog.public-chat-dialog .chat-messages, #app dialog.public-chat-dialog .chat-messages { padding: 16px 20px 20px; }
+  :root dialog.public-chat-dialog .public-chat-form, #app dialog.public-chat-dialog .public-chat-form { padding: 18px 20px; }
+}
+:root[data-theme=dark] dialog.pass-signup-dialog :is(.pass-demo-label,.pass-waiting ol) { background: var(--r-soft); color: var(--r-muted); }
+:root[data-theme=dark] dialog.pass-signup-dialog :is(.pass-eyebrow,.pass-time,footer,.pass-phone>span) { color: var(--r-muted); }
+:root[data-theme=dark] dialog.pass-signup-dialog .pass-carriers button:not([aria-pressed=true]) { background: var(--r-surface); color: var(--r-ink); border-color: var(--r-line); }
+:root[data-theme=dark] dialog.pass-signup-dialog input:not([type=checkbox]):not(:disabled) { background: var(--r-surface); color: var(--r-ink); border-color: var(--r-line); }

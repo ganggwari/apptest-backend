@@ -3,6 +3,7 @@ package com.mbc.puf.internal.devstub;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,9 +25,10 @@ public class DevSmsController {
 
     private static final Pattern CODE = Pattern.compile("\\[(\\d{6})]");
 
-    private final StubSmsSender stubSmsSender;
+    // 실제 문자(puf.sms.enabled=true)가 켜져 있으면 스텁이 없으므로 ObjectProvider 로 받는다
+    private final ObjectProvider<StubSmsSender> stubSmsSender;
 
-    public DevSmsController(StubSmsSender stubSmsSender) {
+    public DevSmsController(ObjectProvider<StubSmsSender> stubSmsSender) {
         this.stubSmsSender = stubSmsSender;
     }
 
@@ -34,7 +36,8 @@ public class DevSmsController {
     @GetMapping("/api/dev/sms/last")
     public ApiResponse<java.util.Map<String, String>> last(@RequestParam("phone") String phone) {
         String target = PhoneNumber.normalize(phone);
-        String message = stubSmsSender.lastMessage(target)
+        StubSmsSender stub = stubSmsSender.getIfAvailable();
+        String message = (stub == null ? java.util.Optional.<String>empty() : stub.lastMessage(target))
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "이 번호로 보낸 문자가 없습니다."));
         Matcher m = CODE.matcher(message);
         return ApiResponse.ok(java.util.Map.of("phone", target, "code", m.find() ? m.group(1) : "", "message", message));

@@ -1,0 +1,116 @@
+:root {
+  --ui-icon-size: 24px;
+  --ui-control-size: 40px;
+}
+
+:is(#app, body) .manager-header-bell .header-alert-link {
+  border: 1px solid var(--line, #c9ced6);
+  background: var(--surface, #fff);
+}
+
+/* Apply only to interface controls; map canvases, charts and weather art own their geometry. */
+:is(#app, body)
+  :is(
+    .ui-icon-button,
+    .theme-toggle,
+    .admin-back-button,
+    .app-back,
+    .app-bell,
+    .header-alert-link,
+    .manager-app-notifications,
+    .manager-app-brandbar > button,
+    .manager-app-titlebar > button,
+    .hdr .iconbtn,
+    .profile-header > button[aria-label],
+    .directions-map-zoom > button,
+    .kakao-map-controls > button
+  ) {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 var(--ui-control-size);
+  width: var(--ui-control-size);
+  min-width: var(--ui-control-size);
+  max-width: var(--ui-control-size);
+  height: var(--ui-control-size);
+  min-height: var(--ui-control-size);
+  max-height: var(--ui-control-size);
+  margin: 0;
+  padding: 0;
+  line-height: 1;
+  vertical-align: middle;
+  transform: none;
+}
+
+:is(#app, body)
+  :is(
+    .ui-icon,
+    .admin-menu-icon,
+    .admin-back-button > svg,
+    .header-alert-link > svg,
+    .app-bell > svg,
+    .hdr .iconbtn > svg,
+    .header-download > svg,
+    .manager-app-header button > svg,
+    .manager-app-notifications > svg,
+    .customer-app-nav svg,
+    .admin-app-bottom-nav svg
+  ) {
+  position: static;
+  inset: auto;
+  display: block;
+  flex: 0 0 var(--ui-icon-size);
+  width: var(--ui-icon-size);
+  min-width: var(--ui-icon-size);
+  max-width: var(--ui-icon-size);
+  height: var(--ui-icon-size);
+  min-height: var(--ui-icon-size);
+  max-height: var(--ui-icon-size);
+  margin: 0;
+  padding: 0;
+  transform: none;
+  vertical-align: middle;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+:is(#app, body) :is(.customer-app-nav, .admin-app-bottom-nav) > a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+  height: 63px;
+  margin: 0;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  transform: none;
+}
+:is(#app, body) .customer-app-nav {
+  height: calc(64px + env(safe-area-inset-bottom));
+  min-height: calc(64px + env(safe-area-inset-bottom));
+  padding: 0 0 env(safe-area-inset-bottom);
+}
+:is(#app, body) :is(.customer-app-nav, .admin-app-bottom-nav) > a > span {
+  display: block;
+  flex: 0 0 16px;
+  height: 16px;
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+:is(#app, body) .app-back-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: inherit;
+  text-decoration: none;
+}

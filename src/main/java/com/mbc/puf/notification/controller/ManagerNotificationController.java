@@ -46,6 +46,15 @@ public class ManagerNotificationController {
         return ApiResponse.ok(notificationService.getManagerNotifications(loginUser, category, unreadOnly, page));
     }
 
+    @Operation(summary = "안 읽은 긴급 알림 (긴급 팝업용)",
+            description = "내가 아직 안 읽은 긴급(urgent=true) 알림 중 최근 puf.urgent.window-minutes(기본 120분) 이내 것, 최신 순 최대 20건. "
+                    + "로그인·SSE 재접속 직후 한 번 불러 팝업으로 띄우고, 확인하면 PUT /{id}/read 로 읽음 처리한다. "
+                    + "실시간으로는 SSE notification-new 의 urgent=true 로 온다")
+    @GetMapping("/urgent")
+    public ApiResponse<java.util.List<ManagerNotificationItem>> urgent(@AuthenticationPrincipal LoginUser loginUser) {
+        return ApiResponse.ok(notificationService.getManagerUrgent(loginUser));
+    }
+
     @Operation(summary = "안 읽은 알림 수 (헤더 벨 숫자 + 탭별 숫자)")
     @GetMapping("/unread-count")
     public ApiResponse<NotificationUnreadResponse> unreadCount(@AuthenticationPrincipal LoginUser loginUser) {

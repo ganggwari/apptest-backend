@@ -15,9 +15,15 @@ public class AlertLogListItem {
     private final String carNum;
     private final AlertType alertType;
     private final LocalDateTime sentAt;
+    private final String pushStatus;   // SUCCESS(받음) / FAIL(발송 실패) / PENDING(발송 중) / NO_PUSH(보낼 기기 없음·푸시 꺼 둠)
 
     public AlertLogListItem(Long id, Long eventId, Long underpassId, Long customerId, Long carId, String carNum,
                             AlertType alertType, LocalDateTime sentAt) {
+        this(id, eventId, underpassId, customerId, carId, carNum, alertType, sentAt, null);
+    }
+
+    public AlertLogListItem(Long id, Long eventId, Long underpassId, Long customerId, Long carId, String carNum,
+                            AlertType alertType, LocalDateTime sentAt, String pushStatus) {
         this.id = id;
         this.eventId = eventId;
         this.underpassId = underpassId;
@@ -26,6 +32,11 @@ public class AlertLogListItem {
         this.carNum = carNum;
         this.alertType = alertType;
         this.sentAt = sentAt;
+        this.pushStatus = pushStatus;
+    }
+
+    public AlertLogListItem withPushStatus(String status) {
+        return new AlertLogListItem(id, eventId, underpassId, customerId, carId, carNum, alertType, sentAt, status);
     }
 
     public Long getId() { return id; }
@@ -36,4 +47,5 @@ public class AlertLogListItem {
     public String getCarNum() { return carNum; }
     public AlertType getAlertType() { return alertType; }
     public LocalDateTime getSentAt() { return sentAt; }
+    public String getPushStatus() { return pushStatus; }
 }

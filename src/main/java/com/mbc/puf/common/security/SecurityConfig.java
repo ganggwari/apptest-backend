@@ -60,6 +60,8 @@ public class SecurityConfig {
 						.requestMatchers(HttpMethod.GET, "/api/its-cctvs", "/api/its-cctvs/nearby", "/api/its-vms", "/api/its-vms/*").permitAll()
 						// ---- 로그인 없이 조회 가능한 날씨 (CP-08) ----
 						.requestMatchers(HttpMethod.GET, "/api/weather").permitAll()
+						// ---- 로그인 없이 조회 가능한 신월여의지하도로 공개 CCTV (서버가 서울터널 제공처를 대신 조회) ----
+						.requestMatchers(HttpMethod.GET, "/api/tunnel-cctv/cameras", "/api/tunnel-cctv/cameras/*/stream").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/navigation/places", "/api/navigation/directions", "/api/navigation/weather").permitAll()
 						// 지도 화면이 쓰는 카카오 JavaScript 키(도메인 제한 키라 공개돼도 되는 값). 로그인 전 지도 화면에서도 읽어야 한다. REST 키는 내려주지 않는다
 						.requestMatchers(HttpMethod.GET, "/api/navigation/config").permitAll()
@@ -79,6 +81,12 @@ public class SecurityConfig {
 						//                  그 검사는 InternalApiKeyInterceptor(WebConfigurer에 등록)가 담당한다.
 						//                  /api/internal/weather/** 도 이 아래로 그대로 포함된다 ----
 						.requestMatchers("/api/internal/**").permitAll()
+
+						// ---- 프런트 정적 파일(화면)과 /tunnel-source 프록시: /api, /ws 가 아닌 경로는 모두 공개 ----
+						.requestMatchers(req -> {
+							String p = req.getRequestURI();
+							return !p.startsWith("/api/") && !p.startsWith("/ws/");
+						}).permitAll()
 
 						// 그 밖의 모든 API는 기본적으로 로그인 필요 → 허용 목록에 빠뜨려도 노출되지 않는다.
 						// 역할별 제한(고객 전용, 관리자 전용)은 각 컨트롤러 메서드의 @PreAuthorize 가 담당한다.

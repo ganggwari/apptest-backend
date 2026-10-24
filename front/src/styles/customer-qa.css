@@ -1,0 +1,205 @@
+/* Shared customer chrome stays aligned regardless of session/menu text length. */
+.customer-header .customer-header-inner {
+  min-width: 0;
+  align-items: center;
+}
+.customer-member-nav {
+  min-width: 0;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 12px;
+}
+.customer-member-nav>a,.customer-member-nav>button {
+  white-space: nowrap;
+}
+@media (min-width:1600px) {
+  .customer-header .customer-header-inner {
+    display: grid;
+    grid-template-columns: minmax(100px,1fr) auto minmax(0,1fr);
+    gap: 16px;
+  }
+  .customer-header .customer-main-nav {
+    grid-column: 2;
+    grid-row: 1;
+    width: auto;
+  }
+  .customer-header .customer-member-nav {
+    grid-column: 3;
+    grid-row: 1;
+    justify-content: flex-end;
+  }
+  .customer-header .customer-logo {
+    grid-column: 1;
+    grid-row: 1;
+  }
+}
+@media (max-width:1599px) {
+  .customer-header .customer-header-inner {
+    display: grid;
+    grid-template-columns: auto minmax(0,1fr);
+    gap: 12px;
+    padding: 12px 0;
+  }
+  .customer-header .customer-logo {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .customer-header .customer-member-nav {
+    grid-column: 2;
+    grid-row: 1;
+    justify-content: flex-end;
+  }
+  .customer-header .customer-main-nav {
+    grid-column: 1/-1;
+    grid-row: 2;
+    display: grid;
+    grid-template-columns: repeat(4,minmax(0,1fr));
+    gap: 8px;
+    width: 100%;
+    justify-self: stretch;
+  }
+  .customer-header .customer-menu-link {
+    height: 44px;
+    min-height: 44px;
+    font-size: 15px;
+  }
+}
+@media (max-width:600px) {
+  .customer-header .customer-header-inner {
+    grid-template-columns: minmax(0,1fr);
+  }
+  .customer-header .customer-logo {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .customer-header .customer-member-nav {
+    grid-column: 1;
+    grid-row: 2;
+    justify-content: flex-start;
+    flex-basis: auto;
+    gap: 8px;
+  }
+  .customer-header .customer-main-nav {
+    grid-row: 3;
+  }
+  .customer-header .customer-menu-link {
+    font-size: 12px;
+  }
+  .customer-member-nav .header-admin-link {
+    padding: 7px 9px;
+  }
+}
+.faq-questions summary {
+  display: grid;
+  grid-template-columns: 88px minmax(0,1fr) 24px;
+  gap: 16px;
+  align-items: center;
+}
+.faq-category {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 88px;
+  min-height: 28px;
+  padding: 4px 8px;
+  line-height: 18px;
+  text-align: center;
+}
+.faq-questions summary strong {
+  line-height: 1.7;
+}
+.faq-chevron {
+  text-align: center;
+}
+@media (max-width:600px) {
+  .faq-questions summary {
+    grid-template-columns: 72px minmax(0,1fr) 20px;
+    gap: 10px;
+  }
+  .faq-category {
+    width: 72px;
+    min-height: 26px;
+  }
+}
+.public-chat-launcher {
+  bottom: calc(48px + env(safe-area-inset-bottom,0px));
+}
+@media (max-width:600px) {
+  .public-chat-launcher {
+    bottom: calc(36px + env(safe-area-inset-bottom,0px));
+  }
+}
+/* Detail content scrolls inside its panel; actions must never be clipped. */
+.wire-page.page-c-map .app.map-swap-layout>.swapped-detail {
+  overflow: auto;
+  min-height: 0;
+}
+.wire-page.page-c-map .swapped-detail .det {
+  overflow: visible;
+  flex: 0 0 auto;
+  min-height: 0;
+}
+.wire-page.page-c-map .swapped-detail #cctvb {
+  flex-shrink: 0;
+  white-space: normal;
+  min-height: 44px;
+}
+.busan-cctv-modal>header,.page-c-map .cctv-dialog-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  flex-shrink: 0;
+  background: var(--surface,#fff);
+  padding: 12px 0;
+}
+.busan-cctv-modal>header button,.page-c-map .cctv-dialog-close {
+  flex-shrink: 0;
+}
+.busan-cctv-modal video,.page-c-map .cctv-dialog video {
+  max-height: 40dvh;
+}
+.busan-cctv-modal[open],.wire-page.page-c-map dialog.cctv-dialog[open] {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-height: calc(100dvh - 24px);
+}
+.busan-cctv-modal>.busan-cctv-viewer,.wire-page.page-c-map .cctv-dialog>.busan-cctv-viewer {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.cctv-confirm-footer {
+  display: flex;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  padding-top: 12px;
+  margin-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.cctv-confirm-footer button {
+  min-height: 40px;
+  padding: 8px 20px;
+  background: var(--surface);
+  color: var(--foreground);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font: inherit;
+  cursor: pointer;
+}
+:root[data-theme=dark] :is(.faq-lead,.faq-help,.faq-questions details>p,.faq-chevron,.account-panel small) {
+  color: #c2c8ce;
+}
+:root[data-theme=dark] .faq-categories button[aria-pressed=true] {
+  background: #30465c;
+  color: #edf1f5;
+}
+:root[data-theme=dark] :is(.header-download,.app-account-primary) {
+  color: #edf1f5;
+  background: #264a6c;
+}
+:root[data-theme=dark] .customer-shell :is(button,a):focus-visible {
+  outline: 2px solid #a8d0f5;
+  outline-offset: 3px;
+}

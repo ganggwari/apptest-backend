@@ -2,12 +2,14 @@ package com.mbc.puf.notification.service;
 
 import java.time.LocalDateTime;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,6 +18,7 @@ import com.mbc.puf.common.enums.AlertType;
 import com.mbc.puf.common.enums.CustomerNotificationCategory;
 import com.mbc.puf.common.enums.ManagerNotificationCategory;
 import com.mbc.puf.common.exception.BusinessException;
+import com.mbc.puf.common.jpa.DbClock;
 import com.mbc.puf.common.query.PagedQuery;
 import com.mbc.puf.common.query.QueryConditions;
 import com.mbc.puf.common.request.PageQuery;
@@ -29,6 +32,7 @@ import com.mbc.puf.notification.entity.CustomerNotification;
 import com.mbc.puf.notification.entity.ManagerNotification;
 import com.mbc.puf.notification.repository.CustomerNotificationRepository;
 import com.mbc.puf.notification.repository.ManagerNotificationRepository;
+import com.mbc.puf.notification.dto.PushMessage;
 import com.mbc.puf.stream.StreamPayloads;
 import com.mbc.puf.stream.StreamPublisher;
 
@@ -49,18 +53,23 @@ public class NotificationServiceImpl implements NotificationService {
     private final ManagerRegionRepository managerRegionRepository;
     private final EntityManager em;
     private final StreamPublisher streamPublisher;
-    private final PushService pushService;   // FCM 푸시 (설정이 없으면 아무것도 안 함)
+    private final PushService pushService;
+    private final DbClock dbClock;
+    private final int urgentWindowMinutes;
 
     public NotificationServiceImpl(CustomerNotificationRepository customerRepository,
                                    ManagerNotificationRepository managerRepository,
                                    ManagerRegionRepository managerRegionRepository, EntityManager em,
-                                   StreamPublisher streamPublisher, PushService pushService) {
+                                   StreamPublisher streamPublisher, PushService pushService, DbClock dbClock,
+                                   @Value("${puf.urgent.window-minutes:120}") int urgentWindowMinutes) {
+        this.pushService = pushService;
+        this.dbClock = dbClock;
+        this.urgentWindowMinutes = Math.max(1, urgentWindowMinutes);
         this.customerRepository = customerRepository;
         this.managerRepository = managerRepository;
         this.managerRegionRepository = managerRegionRepository;
         this.em = em;
         this.streamPublisher = streamPublisher;
-        this.pushService = pushService;
     }
 
     // ================= 고객 알림: 만들기 =================
@@ -89,8 +98,9 @@ public class NotificationServiceImpl implements NotificationService {
         // 고객 수만큼 알림 행이 한 번에 생기므로 개인 이벤트 대신 공개 이벤트 1건만 보낸다.
         // 로그인한 고객의 프런트는 이걸 받으면 안 읽은 알림 개수를 다시 조회한다
         streamPublisher.publishPublic("notice-new", null, new StreamPayloads.NoticeNew(noticeId, noticeTitle, important));
-        // 앱이 닫혀 있어도 알려 주는 푸시 (FCM 설정이 있을 때만)
-        pushService.sendToAllCustomers(important ? "[긴급] 새 공지" : "새 공지", noticeTitle, "NOTICE", noticeId);
+        // 앱·웹 푸시: 푸시 토큰을 등록한 모든 고객 기기에 한 번에 (커밋 뒤 비동기)
+        pushService.sendToAllAfterCommit(new PushMessage(important ? "[긴급] 새 공지" : "새 공지", noticeTitle,
+                Map.of("category", "NOTICE", "refType", "NOTICE", "refId", String.valueOf(noticeId))));
     }
 
     @Override
@@ -105,6 +115,8 @@ public class NotificationServiceImpl implements NotificationService {
         n.setRefId(inquiryId);
         customerRepository.save(n);
         pushToCustomer(n);
+        pushService.sendToCustomerAfterCommit(customerId, new PushMessage(n.getTitle(), inquiryTitle,
+                Map.of("category", "INQUIRY", "refType", "INQUIRY", "refId", String.valueOf(inquiryId))));
     }
 
     // ================= 고객 알림: 조회·읽음 =================
@@ -162,7 +174,20 @@ public class NotificationServiceImpl implements NotificationService {
     @Transactional
     public void notifyManagers(ManagerNotificationCategory category, Long regionId, String title, String body,
                                String refType, Long refId) {
+        createManagerNotification(category, regionId, title, body, refType, refId, false);
+    }
+
+    @Override
+    @Transactional
+    public void notifyManagersUrgent(ManagerNotificationCategory category, Long regionId, String title, String body,
+                                     String refType, Long refId) {
+        createManagerNotification(category, regionId, title, body, refType, refId, true);
+    }
+
+    private void createManagerNotification(ManagerNotificationCategory category, Long regionId, String title,
+                                           String body, String refType, Long refId, boolean urgent) {
         ManagerNotification n = new ManagerNotification();
+        n.setUrgent(urgent);
         n.setCategory(category);
         n.setRegionId(regionId);
         n.setTitle(title);
@@ -173,7 +198,36 @@ public class NotificationServiceImpl implements NotificationService {
         // 해당 지역 담당 관리자(regionId 가 null 이면 모든 관리자)의 화면에 새 알림을 알린다
         streamPublisher.publishToAdmins(regionId, "notification-new",
                 new StreamPayloads.ManagerNotificationNew(n.getId(), n.getCategory(), n.getRegionId(), n.getTitle(),
-                        n.getBody(), n.getRefType(), n.getRefId(), createdOrNow(n.getCreatedAt())));
+                        n.getBody(), n.getRefType(), n.getRefId(), urgent, createdOrNow(n.getCreatedAt())));
+        // 관리자 기기 푸시: 같은 대상(해당 지역 담당 관리자, null 이면 전체)에게 커밋 뒤 비동기로
+        Map<String, String> data = new HashMap<>();
+        data.put("category", String.valueOf(category));
+        if (urgent) {
+            data.put("urgent", "true");   // 앱·PWA 가 긴급 팝업/전체 화면 알림으로 띄우는 기준
+        }
+        if (refType != null) {
+            data.put("refType", refType);
+        }
+        if (refId != null) {
+            data.put("refId", String.valueOf(refId));
+        }
+        pushService.sendToManagersAfterCommit(regionId, new PushMessage(urgent ? "[긴급] " + title : title, body, data));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ManagerNotificationItem> getManagerUrgent(LoginUser loginUser) {
+        Long me = loginUser.id();
+        LocalDateTime since = dbClock.now().minusMinutes(urgentWindowMinutes);
+        List<ManagerNotification> rows = em.createQuery("select n from ManagerNotification n"
+                        + " where n.urgent = true and n.createdAt >= :since"
+                        + " and (n.regionId is null or n.regionId in (:regions))"
+                        + " and not " + READ_EXISTS.formatted(":me") + " order by n.createdAt desc, n.id desc",
+                        ManagerNotification.class)
+                .setParameter("since", since).setParameter("regions", myRegionIds(me)).setParameter("me", me)
+                .setMaxResults(20).getResultList();
+        return rows.stream().map(n -> new ManagerNotificationItem(n.getId(), n.getCategory(), n.getRegionId(),
+                n.getTitle(), n.getBody(), n.getRefType(), n.getRefId(), false, true, n.getCreatedAt())).toList();
     }
 
     @Override
@@ -201,7 +255,7 @@ public class NotificationServiceImpl implements NotificationService {
 
         List<ManagerNotificationItem> items = found.getItems().stream()
                 .map(n -> new ManagerNotificationItem(n.getId(), n.getCategory(), n.getRegionId(), n.getTitle(),
-                        n.getBody(), n.getRefType(), n.getRefId(), readIds.contains(n.getId()), n.getCreatedAt()))
+                        n.getBody(), n.getRefType(), n.getRefId(), readIds.contains(n.getId()), n.isUrgent(), n.getCreatedAt()))
                 .toList();
         return new PageResponse<>(items, found.getPage(), found.getSize(), found.getTotalItems());
     }
@@ -257,8 +311,6 @@ public class NotificationServiceImpl implements NotificationService {
 
     // 방금 저장한 고객 알림을 그 고객의 SSE 로 보낸다 (안 읽은 개수 포함)
     private void pushToCustomer(CustomerNotification n) {
-        // 앱·웹이 닫혀 있어도 받도록 FCM 푸시도 같이 보낸다 (설정이 없으면 건너뜀)
-        pushService.sendToCustomer(n.getCustomerId(), n.getTitle(), n.getBody(), n.getRefType(), n.getRefId());
         streamPublisher.publishToCustomer(n.getCustomerId(), "notification-new",
                 new StreamPayloads.CustomerNotificationNew(n.getId(), n.getCategory(), n.getTitle(), n.getBody(),
                         n.getRefType(), n.getRefId(), createdOrNow(n.getCreatedAt()), getMyUnread(n.getCustomerId())));

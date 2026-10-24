@@ -44,6 +44,13 @@ public interface NotificationService {
     void notifyManagers(ManagerNotificationCategory category, Long regionId, String title, String body,
                         String refType, Long refId);
 
+    // 긴급 알림 만들기. notifyManagers 와 같지만 urgent=true 로 저장하고 SSE(notification-new)에 urgent 를 싣고 푸시를 긴급으로 보낸다
+    void notifyManagersUrgent(ManagerNotificationCategory category, Long regionId, String title, String body,
+                              String refType, Long refId);
+
+    // 로그인·재접속 직후 긴급 팝업용: 내가 아직 안 읽은 긴급 알림 중 최근(puf.urgent.window-minutes) 것, 최신 순
+    java.util.List<ManagerNotificationItem> getManagerUrgent(LoginUser loginUser);
+
     // 내 담당 지역(+전체 대상) 알림 목록. category 가 null 이면 "전체" 탭
     PageResponse<ManagerNotificationItem> getManagerNotifications(LoginUser loginUser,
                                                                   ManagerNotificationCategory category,

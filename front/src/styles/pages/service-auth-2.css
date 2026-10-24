@@ -1,0 +1,28 @@
+.signup-verification-choice {
+  margin: 20px 0 24px;
+}
+.signup-verification-choice h2 {
+  font-size: 16px;
+  margin: 0 0 8px;
+}
+.signup-verification-choice p,.signup-verification-choice>small {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ink-sub,#64748b);
+}
+.signup-verification-choice>div {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 16px 0 8px;
+}
+.signup-verification-choice button[aria-pressed=true] {
+  border-color: #e52b3b;
+  background: #fff4f5;
+  color: #b91f30;
+  font-weight: 700;
+}
+.signup-verification-choice button small {
+  font-size: 10px;
+  margin-left: 4px;
+}

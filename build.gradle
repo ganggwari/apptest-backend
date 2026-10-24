@@ -53,9 +53,6 @@ dependencies {
     // application.properties 자동완성용
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 
-    // FCM 푸시 발송 (서비스 계정으로 액세스 토큰만 받고, 발송은 HTTP v1 REST 로 직접 호출)
-    implementation 'com.google.auth:google-auth-library-oauth2-http:1.23.0'
-
     // PDF 생성 (이관 보고서: 경찰/소방 이관 PDF 출력)
     implementation 'com.itextpdf:itext-core:9.1.0'
     implementation 'com.itextpdf:layout:9.1.0'

@@ -1,0 +1,166 @@
+.required-guide {
+  font-size: 13px;
+}
+.required-guide span,.auth-service .required-star {
+  color: #c62828;
+  font-size: 16px;
+  font-weight: 700;
+}
+.auth-service .service-form-fields {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 18px;
+}
+.auth-service .service-form-fields>.auth-field {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  grid-column: 1/-1;
+}
+.auth-service .signup-form .service-form-fields>:is(.auth-field-password,.auth-field-passwordConfirm,.auth-field-name,.auth-field-birthDate) {
+  grid-column: auto;
+}
+.auth-service .service-form-fields input {
+  min-width: 0;
+  width: 100%;
+}
+.auth-service .service-form-fields .inline-field {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto;
+  align-items: end;
+}
+.inline-field .service-field-label {
+  grid-column: 1/-1;
+}
+.inline-field :deep(.postcode-search-control) {
+  margin: 0;
+}
+.auth-service .auth-buttons button[type=submit] {
+  min-width: 160px;
+}
+.auth-service .remember-login-id input {
+  width: 16px;
+}
+.auth-service .remember-login-id {
+  margin-top: 0;
+}
+@media (max-width:600px) {
+  .auth-service .service-form-fields {
+    grid-template-columns: minmax(0,1fr);
+  }
+  .auth-service .service-form-fields .inline-field {
+    grid-template-columns: minmax(0,1fr);
+  }
+  .auth-service .auth-buttons button[type=submit] {
+    width: 100%;
+  }
+}
+.auth-service .remember-login-id {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: max-content;
+  margin-top: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.auth-service .remember-login-id input {
+  width: 16px;
+  height: 16px;
+  min-height: 16px;
+  margin: 0;
+  padding: 0;
+  accent-color: #173d62;
+}
+.verification-timing {
+  margin-top: 20px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.verification-timing p {
+  margin: 0 0 10px;
+}
+.verification-timing strong {
+  font-variant-numeric: tabular-nums;
+  color: var(--primary,#173d62);
+}
+.auth-field-group {
+  margin: 20px 0;
+}
+.auth-field-group h2 {
+  font-size: 16px;
+  margin: 0 0 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+.service-field-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.service-field-label small {
+  font-size: 11px;
+  color: var(--ink-sub,#64748b);
+}
+.auth-service .duplicate-check {
+  justify-self: start;
+  min-height: 36px;
+  padding: 6px 12px;
+  font-size: 12px;
+}
+.auth-service {
+  max-width: 680px;
+  margin: 24px auto;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.auth-service .login-form .service-form-fields {
+  max-width: 360px;
+  grid-template-columns: minmax(0,1fr);
+}
+.auth-service .auth-field-code {
+  width: min(100%,328px);
+}
+.auth-service .auth-field-code > input {
+  width: 100%;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .2em;
+}
+.auth-service h1 {
+  font-size: 24px;
+  margin: 0 0 20px;
+}
+.auth-buttons,.auth-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+}
+.auth-buttons {
+  justify-content: flex-end;
+}
+.auth-links {
+  font-size: 13px;
+}
+.auth-service button {
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: inherit;
+}
+.auth-service .auth-buttons button[type=submit] {
+  background: #173d62;
+  color: white;
+}
+@media (max-width:600px) {
+  .auth-service {
+    margin: 12px 0;
+    padding: 20px 16px;
+  }
+}

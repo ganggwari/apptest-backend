@@ -1,0 +1,423 @@
+.page-admin-app-8 {
+  --ink: #20252b;
+  --sub: #555;
+  --line: #c9ced6;
+  --soft: #c9ced6;
+  --brand: #20252b;
+  --accent: #20252b;
+  --nav: #20252b;
+  --danger: #c62828;
+  --dbg: #fde7e7;
+  --warn: #a85a00;
+  --wbg: #fff1d6;
+  --wl: #f0a020;
+  --safe: #1b7f5c;
+  --sbg: #e1f3ea;
+}
+.page-admin-app-8 * {
+  box-sizing: border-box;
+}
+.page-admin-app-8 {
+  margin: 0;
+  background: var(--surface,#fff);
+}
+.page-admin-app-8 .ph {
+  width: 300px;
+  height: 610px;
+  border: 7px solid #1e2b3a;
+  background: var(--surface,#fff);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  font-size: 11px;
+  line-height: 1.4;
+  flex: none;
+}
+.page-admin-app-8 .sb {
+  height: 22px;
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 18px 0;
+  font-size: 9px;
+  flex: none;
+}
+.page-admin-app-8 .ah {
+  padding: 8px 14px;
+  font-weight: 700;
+  font-size: 14px;
+  flex: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--soft);
+}
+.page-admin-app-8 .adm .ah {
+  background: var(--surface,#fff);
+  border: 0;
+}
+.page-admin-app-8 .adm .sb {
+  background: var(--surface,#fff);
+}
+.page-admin-app-8 .bd {
+  flex: 1;
+  overflow: hidden;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+}
+.page-admin-app-8 .tb {
+  height: 50px;
+  display: flex;
+  border-top: 1px solid var(--soft);
+  flex: none;
+  background: var(--surface,#fff);
+}
+.page-admin-app-8 .tb span {
+  flex: 1;
+  text-align: center;
+  font-size: 9px;
+  padding-top: 6px;
+}
+.page-admin-app-8 .tb span b {
+  display: block;
+  font-size: 15px;
+  line-height: 1.1;
+  font-weight: 400;
+}
+.page-admin-app-8 .tb span.on {
+  color: var(--brand);
+  font-weight: 700;
+}
+.page-admin-app-8 .lv {
+  display: inline-block;
+  padding: 0 7px;
+  font-size: 9.5px;
+  font-weight: 700;
+  border: 1px solid;
+  white-space: nowrap;
+}
+.page-admin-app-8 .lv.d {
+  background: var(--dbg);
+  color: var(--danger);
+  border-color: var(--danger);
+}
+.page-admin-app-8 .lv.d:before {
+  content: "■ ";
+}
+.page-admin-app-8 .lv.w {
+  background: var(--wbg);
+  color: var(--warn);
+  border-color: var(--wl);
+}
+.page-admin-app-8 .lv.w:before {
+  content: "▲ ";
+}
+.page-admin-app-8 .lv.s {
+  background: var(--sbg);
+  color: var(--safe);
+  border-color: transparent;
+}
+.page-admin-app-8 .lv.s:before {
+  content: "● ";
+}
+.page-admin-app-8 .lv.n {
+  background: #eef1f4;
+  color: var(--sub);
+  border-color: var(--line);
+}
+.page-admin-app-8 .card {
+  border: 1px solid var(--soft);
+  padding: 8px 10px;
+  background: var(--surface,#fff);
+}
+.page-admin-app-8 .card h4 {
+  margin: 0 0 4px;
+  font-size: 11.5px;
+}
+.page-admin-app-8 .btn {
+  display: block;
+  text-align: center;
+  border: 1px solid var(--line);
+  padding: 9px 8px;
+  font-weight: 700;
+  background: var(--surface,#fff);
+  font-size: 11px;
+}
+.page-admin-app-8 .btn.p {
+  background: var(--surface,#fff);
+  border-color: var(--line,#c9ced6);
+}
+.page-admin-app-8 .btn.d {
+  background: var(--surface,#fff);
+  border-color: var(--line,#c9ced6);
+}
+.page-admin-app-8 .btn.k {
+  background: var(--surface,#fff);
+  border-color: var(--line,#c9ced6);
+}
+.page-admin-app-8 .chips {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.page-admin-app-8 .chip {
+  border: 1px solid var(--line);
+  padding: 2px 9px;
+  font-size: 10px;
+  background: var(--surface,#fff);
+}
+.page-admin-app-8 .chip.on {
+  background: #e3f0ff;
+  color: var(--brand);
+  border-color: var(--brand);
+  font-weight: 700;
+}
+.page-admin-app-8 .inp {
+  border: 1px solid var(--line);
+  padding: 9px 10px;
+  background: var(--surface,#fff);
+}
+.page-admin-app-8 .row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--soft);
+  padding: 8px 0;
+}
+.page-admin-app-8 .row:last-child {
+  border: 0;
+}
+.page-admin-app-8 .row .g {
+  flex: 1;
+  min-width: 0;
+}
+.page-admin-app-8 .row small,.page-admin-app-8 .sub {
+  font-size: 9.5px;
+}
+.page-admin-app-8 .row b {
+  display: block;
+  font-size: 11.5px;
+}
+.page-admin-app-8 .map {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface,#fff);
+  border: 1px solid var(--soft);
+  flex: 1;
+  min-height: 150px;
+}
+.page-admin-app-8 .map i {
+  position: absolute;
+  width: 15px;
+  height: 15px;
+  border: 2px solid #fff;
+  transform: translate(-50%,-50%);
+}
+.page-admin-app-8 .map i.d {
+  background: var(--surface,#fff);
+  width: 20px;
+  height: 20px;
+}
+.page-admin-app-8 .map i.w {
+  background: var(--surface,#fff);
+  border-color: var(--line,#c9ced6);
+  border-width: 3px;
+}
+.page-admin-app-8 .map i.s {
+  background: var(--surface,#fff);
+}
+.page-admin-app-8 .map i.me {
+  background: var(--surface,#fff);
+}
+.page-admin-app-8 .map svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.page-admin-app-8 .vid {
+  background: var(--surface,#fff);
+  height: 92px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  position: relative;
+}
+.page-admin-app-8 .vid:after {
+  content: "LIVE";
+  position: absolute;
+  left: 6px;
+  top: 5px;
+  background: var(--surface,#fff);
+  font-size: 8px;
+  padding: 0 5px;
+}
+.page-admin-app-8 .ban {
+  padding: 7px 10px;
+  font-weight: 700;
+  font-size: 10.5px;
+}
+.page-admin-app-8 .ban.d {
+  background: var(--danger);
+  color: #fff;
+}
+.page-admin-app-8 .ban.w {
+  background: var(--wbg);
+  color: var(--warn);
+}
+.page-admin-app-8 .ban.i {
+  background: #e3f0ff;
+  color: var(--brand);
+}
+.page-admin-app-8 .sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 50px;
+  background: var(--surface,#fff);
+  padding: 10px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.page-admin-app-8 .sheet:before {
+  content: "";
+  width: 34px;
+  height: 4px;
+  background: var(--surface,#fff);
+  margin: 0 auto 2px;
+}
+.page-admin-app-8 .dim {
+  position: absolute;
+  inset: 0;
+  background: var(--surface,#fff);
+}
+.page-admin-app-8 .kv {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.page-admin-app-8 .kv div {
+  border: 1px solid var(--soft);
+  padding: 5px 8px;
+  background: var(--surface,#fff);
+}
+.page-admin-app-8 .kv small {
+  display: block;
+  font-size: 9px;
+}
+.page-admin-app-8 .kv b {
+  font-size: 12px;
+}
+.page-admin-app-8 .bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 70px;
+  border-bottom: 1px solid var(--line);
+  position: relative;
+}
+.page-admin-app-8 .bars u {
+  flex: 1;
+  background: var(--surface,#fff);
+  text-decoration: none;
+}
+.page-admin-app-8 .bars u.hi {
+  background: var(--surface,#fff);
+}
+.page-admin-app-8 .bars u.mid {
+  background: var(--surface,#fff);
+}
+.page-admin-app-8 .fab {
+  position: absolute;
+  right: 12px;
+  bottom: 62px;
+  width: 40px;
+  height: 40px;
+  background: var(--surface,#fff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+}
+.page-admin-app-8 .chat {
+  max-width: 82%;
+  padding: 7px 10px;
+  font-size: 10.5px;
+}
+.page-admin-app-8 .chat.u {
+  background: var(--surface,#fff);
+  align-self: flex-end;
+}
+.page-admin-app-8 .chat.b {
+  background: var(--surface,#fff);
+  align-self: flex-start;
+}
+.page-admin-app-8 .fig {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 300px;
+}
+.page-admin-app-8 .fig .no {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  font-weight: 700;
+  font-size: 13px;
+}
+.page-admin-app-8 .fig .no span {
+  background: var(--surface,#fff);
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+}
+.page-admin-app-8 .fig p {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+.page-admin-app-8 .rowg {
+  display: flex;
+  gap: 26px;
+  padding: 22px;
+  justify-content: center;
+  background: var(--surface,#fff);
+}
+.page-admin-app-8 .top {
+  padding: 14px 22px;
+  background: var(--surface,#fff);
+  border-bottom: 1px solid #d5dae0;
+  font-weight: 700;
+}
+.page-admin-app-8 .top small {
+  font-weight: 400;
+  margin-left: 8px;
+}
+.page-admin-app-8 .inl-683edd9226 {
+  font-size: 11px;
+  font-weight: 400;
+}
+.page-admin-app-8 .inl-f0abc1db33 {
+  gap: 6px;
+}
+.page-admin-app-8 .inl-5e0faad207 {
+  font-size: 13px;
+}
+.page-admin-app-8 .inl-d1b3a3ffca {
+  padding: 7px 10px;
+}
+.page-admin-app-8 .inl-833d9bde94 {
+  background: var(--surface,#fff);
+}
+.page-admin-app-8 .inl-d69d528a65 {
+  background: var(--surface,#fff);
+}

@@ -1,0 +1,443 @@
+[
+  {
+    "index": 0,
+    "name": "초량1지하차도",
+    "lat": 35.11910456526741,
+    "lng": 129.04481034563676,
+    "source": "http://place.map.kakao.com/23583646",
+    "placeName": "초량지하차도",
+    "address": "부산 동구 초량동 1171-1"
+  },
+  {
+    "index": 1,
+    "name": "초량2지하차도",
+    "lat": 35.1228224558484,
+    "lng": 129.048031469925,
+    "source": "http://place.map.kakao.com/8509546",
+    "placeName": "제2지하차도교차로",
+    "address": "부산 동구 초량동 1172 (제2지하차도 진입 교차로 기준)"
+  },
+  {
+    "index": 2,
+    "name": "우장춘지하차도",
+    "lat": 35.215270195298494,
+    "lng": 129.0723736840653,
+    "source": "http://place.map.kakao.com/8521184",
+    "placeName": "우장춘지하차도",
+    "address": "부산 동래구 온천동 362-3"
+  },
+  {
+    "index": 3,
+    "name": "범천지하차도",
+    "lat": 35.14751835477742,
+    "lng": 129.05577964546038,
+    "source": "http://place.map.kakao.com/23582989",
+    "placeName": "범천지하차도",
+    "address": "부산 부산진구 범천동 965-5"
+  },
+  {
+    "index": 4,
+    "name": "문현지하차도",
+    "lat": 35.1371410340305,
+    "lng": 129.06808613969403,
+    "source": "http://place.map.kakao.com/15289514",
+    "placeName": "문현지하차도",
+    "address": "부산 남구 문현동 682"
+  },
+  {
+    "index": 5,
+    "name": "부산진시장지하차도",
+    "lat": 35.137118706636876,
+    "lng": 129.05738410760276,
+    "source": "http://place.map.kakao.com/27154451",
+    "placeName": "부산진시장지하차도",
+    "address": "부산 동구 범일동 1562"
+  },
+  {
+    "index": 6,
+    "name": "좌동지하차도",
+    "lat": 35.17666220280227,
+    "lng": 129.18327183442207,
+    "source": "http://place.map.kakao.com/8575132",
+    "placeName": "좌동지하차도",
+    "address": "부산 해운대구 좌동 1423-9"
+  },
+  {
+    "index": 7,
+    "name": "수영강변지하차도",
+    "lat": 35.18441632403937,
+    "lng": 129.11835636799125,
+    "source": "http://place.map.kakao.com/26247236",
+    "placeName": "수영강변지하차도",
+    "address": "부산 해운대구 재송동 828-1"
+  },
+  {
+    "index": 8,
+    "name": "센텀지하차도",
+    "lat": 35.17662546857784,
+    "lng": 129.12450122894526,
+    "source": "http://place.map.kakao.com/15150196",
+    "placeName": "센텀지하차도",
+    "address": "부산 해운대구 재송동 1199"
+  },
+  {
+    "index": 9,
+    "name": "장평지하차도",
+    "lat": 35.0860443520624,
+    "lng": 128.988464356552,
+    "source": "http://place.map.kakao.com/1799544470",
+    "placeName": "장평지하차도",
+    "address": "부산 사하구 구평동 24-32"
+  },
+  {
+    "index": 10,
+    "name": "봉림지하차도",
+    "lat": 35.17573537663639,
+    "lng": 128.9010291284714,
+    "source": "http://place.map.kakao.com/23581922",
+    "placeName": "봉림지하차도",
+    "address": "부산 강서구 봉림동 869-1"
+  },
+  {
+    "index": 11,
+    "name": "충장지하차도",
+    "lat": 35.11543971490439,
+    "lng": 129.04394334609583,
+    "source": "http://place.map.kakao.com/1285125476",
+    "placeName": "충장지하차도",
+    "address": "부산 동구 초량동 1185-18"
+  },
+  {
+    "index": 12,
+    "name": "개금지하차도",
+    "lat": 35.154758722576645,
+    "lng": 129.02505185194752,
+    "source": "http://place.map.kakao.com/23581981",
+    "placeName": "개금지하차도",
+    "address": "부산 부산진구 개금동 576"
+  },
+  {
+    "index": 13,
+    "name": "센텀시티지하차도",
+    "lat": 35.17071128357378,
+    "lng": 129.12588485380857,
+    "source": "http://place.map.kakao.com/15154595",
+    "placeName": "센텀시티지하차도",
+    "address": "부산 해운대구 우동 1494"
+  },
+  {
+    "index": 14,
+    "name": "내성지하차도",
+    "lat": 35.204350062730846,
+    "lng": 129.07799525679297,
+    "source": "http://place.map.kakao.com/8190049",
+    "placeName": "내성지하차도",
+    "address": "부산 동래구 온천동 527"
+  },
+  {
+    "index": 15,
+    "name": "명지지하차도",
+    "lat": 35.08903258989728,
+    "lng": 128.90359622187052,
+    "source": "http://place.map.kakao.com/7868051",
+    "placeName": "명지지하차도",
+    "address": "부산 강서구 명지동 3270"
+  },
+  {
+    "index": 16,
+    "name": "신선대지하차도",
+    "lat": 35.11851844636241,
+    "lng": 129.09645585329937,
+    "source": "http://place.map.kakao.com/27542570",
+    "placeName": "신선대지하차도",
+    "address": "부산 남구 용당동 602-1"
+  },
+  {
+    "index": 17,
+    "name": "금호지하차도",
+    "lat": 35.169059311346665,
+    "lng": 128.96015862988486,
+    "source": "http://place.map.kakao.com/17167948",
+    "placeName": "금호지하차도",
+    "address": "부산 강서구 대저2동 2607-2"
+  },
+  {
+    "index": 18,
+    "name": "문전지하차도",
+    "lat": 35.1495445989005,
+    "lng": 129.065394843199,
+    "source": "http://place.map.kakao.com/547640025",
+    "placeName": "문전지하차도",
+    "address": "부산 부산진구 전포동 888"
+  },
+  {
+    "index": 19,
+    "name": "와석지하차도",
+    "lat": 35.2346051745113,
+    "lng": 129.018705246754,
+    "source": "http://place.map.kakao.com/1004917684",
+    "placeName": "와석지하차도",
+    "address": "부산 북구 화명동 745"
+  },
+  {
+    "index": 20,
+    "name": "안락지하차도",
+    "lat": 35.198207134644,
+    "lng": 129.09694993006346,
+    "source": "http://place.map.kakao.com/10573780",
+    "placeName": "안락지하차도",
+    "address": "부산 동래구 안락동 473"
+  },
+  {
+    "index": 21,
+    "name": "대남지하차도",
+    "lat": 35.13990585278242,
+    "lng": 129.10532872619524,
+    "source": "http://place.map.kakao.com/7817029",
+    "placeName": "대남지하차도",
+    "address": "부산 남구 대연동 77"
+  },
+  {
+    "index": 22,
+    "name": "장전지하차도",
+    "lat": 35.239882762336556,
+    "lng": 129.0879722167683,
+    "source": "http://place.map.kakao.com/1405906977",
+    "placeName": "장전지하차도",
+    "address": "부산 금정구 장전동 241-11"
+  },
+  {
+    "index": 23,
+    "name": "북항지하차도",
+    "lat": 35.12326943066548,
+    "lng": 129.0464851480399,
+    "source": "http://place.map.kakao.com/8071100",
+    "placeName": "북항지하차도",
+    "address": "부산 동구 초량동 1171-1"
+  },
+  {
+    "index": 24,
+    "name": "장평지하차도",
+    "lat": 35.08495522879302,
+    "lng": 128.98122946763192,
+    "source": "http://place.map.kakao.com/1093438823",
+    "placeName": "장평지하차도",
+    "address": "부산 사하구 장림동 1064"
+  },
+  {
+    "index": 25,
+    "name": "당감지하차도",
+    "lat": 35.15738920159386,
+    "lng": 129.04105100415143,
+    "source": "http://place.map.kakao.com/23581784",
+    "placeName": "당감지하차도",
+    "address": "부산 부산진구 당감동 126-2"
+  },
+  {
+    "index": 26,
+    "name": "구서지하차도",
+    "lat": 35.24624004248446,
+    "lng": 129.0928917024135,
+    "source": "http://place.map.kakao.com/8223292",
+    "placeName": "구서지하차도",
+    "address": "부산 금정구 구서동 481-1"
+  },
+  {
+    "index": 27,
+    "name": "대상지하차도",
+    "lat": 35.21168847350549,
+    "lng": 128.9741917014973,
+    "source": "http://place.map.kakao.com/8292266",
+    "placeName": "대상지하차도",
+    "address": "부산 강서구 대저1동 727-2"
+  },
+  {
+    "index": 28,
+    "name": "우동지하차도",
+    "lat": 35.17426588125848,
+    "lng": 129.16421006727245,
+    "source": "http://place.map.kakao.com/123249655",
+    "placeName": "우동지하차도",
+    "address": "부산 해운대구 좌동 1370"
+  },
+  {
+    "index": 29,
+    "name": "명지동진지하차도",
+    "lat": 35.09733489632314,
+    "lng": 128.9268929872222,
+    "source": "http://place.map.kakao.com/1100609636",
+    "placeName": "명지동진지하차도",
+    "address": "부산 강서구 명지동 1584-15"
+  },
+  {
+    "index": 30,
+    "name": "무곡지하차도",
+    "lat": 35.2270902889455,
+    "lng": 129.213436002927,
+    "source": "http://place.map.kakao.com/1460739760",
+    "placeName": "무곡지하차도",
+    "address": "부산 기장군 기장읍 청강리 534"
+  },
+  {
+    "index": 31,
+    "name": "구서IC지하차도",
+    "lat": 35.25006140220343,
+    "lng": 129.09837608247776,
+    "source": "http://place.map.kakao.com/1152071203",
+    "placeName": "구서IC지하차도",
+    "address": "부산 금정구 구서동 102-3"
+  },
+  {
+    "index": 32,
+    "name": "삼성1지하차도",
+    "lat": 35.26615526319077,
+    "lng": 129.22817867334254,
+    "source": "http://place.map.kakao.com/1580906424",
+    "placeName": "삼성1지하차도",
+    "address": "부산 기장군 일광읍 삼성리 230"
+  },
+  {
+    "index": 33,
+    "name": "구남지하차도",
+    "lat": 35.203146728061476,
+    "lng": 128.99488509004445,
+    "source": "http://place.map.kakao.com/8226658",
+    "placeName": "구남지하차도",
+    "address": "부산 북구 구포동 1060-316"
+  },
+  {
+    "index": 34,
+    "name": "온골지하차도",
+    "lat": 35.15297801180049,
+    "lng": 128.99660980969787,
+    "source": "http://place.map.kakao.com/888794230",
+    "placeName": "온골지하차도",
+    "address": "부산 사상구 주례동 1231-50"
+  },
+  {
+    "index": 35,
+    "name": "삼락생태공원삼락IC지하차도",
+    "lat": 35.19248385711063,
+    "lng": 128.98118081837916,
+    "source": "http://place.map.kakao.com/1895483935",
+    "placeName": "삼락생태공원삼락IC지하차도",
+    "address": "부산 사상구 삼락동 29-2"
+  },
+  {
+    "index": 36,
+    "name": "용천지하차도",
+    "lat": 35.193450853334,
+    "lng": 129.115182394184,
+    "source": "http://place.map.kakao.com/72715528",
+    "placeName": "용천지하차도",
+    "address": "부산 해운대구 재송동"
+  },
+  {
+    "index": 37,
+    "name": "삼락생태공원중앙지하차도",
+    "lat": 35.16851019109,
+    "lng": 128.976090553858,
+    "source": "http://place.map.kakao.com/1901368220",
+    "placeName": "삼락생태공원중앙지하차도",
+    "address": "부산 사상구 삼락동 29-91"
+  },
+  {
+    "index": 38,
+    "name": "주례역왕굴다리지하차도",
+    "lat": 35.1527476950453,
+    "lng": 129.003244728219,
+    "source": "http://place.map.kakao.com/880897855",
+    "placeName": "주례역왕굴다리지하차도",
+    "address": "부산 사상구 주례동 340"
+  },
+  {
+    "index": 39,
+    "name": "동부지하차도",
+    "lat": 35.24936820982635,
+    "lng": 129.21695705832306,
+    "source": "http://place.map.kakao.com/7842320",
+    "placeName": "동부지하차도",
+    "address": "부산 기장군 기장읍 동부리 428"
+  },
+  {
+    "index": 40,
+    "name": "영락공원지하차도",
+    "lat": 35.2753333538126,
+    "lng": 129.108561836235,
+    "source": "http://place.map.kakao.com/274493578",
+    "placeName": "영락공원지하차도",
+    "address": "부산 금정구 선동 632-1"
+  },
+  {
+    "index": 41,
+    "name": "주례역교차로지하차도",
+    "lat": 35.1513702023536,
+    "lng": 129.003002479252,
+    "source": "http://place.map.kakao.com/1787438382",
+    "placeName": "주례역교차로지하차도",
+    "address": "부산 사상구 주례동 403-2"
+  },
+  {
+    "index": 42,
+    "name": "감천지하차도",
+    "lat": 35.08804733764004,
+    "lng": 129.00075298622465,
+    "source": "http://place.map.kakao.com/1671180986",
+    "placeName": "감천지하차도",
+    "address": "부산 사하구 감천동 759-8"
+  },
+  {
+    "index": 43,
+    "name": "노포지하차도",
+    "lat": 35.29165290211002,
+    "lng": 129.09165124713851,
+    "source": "http://place.map.kakao.com/771153939",
+    "placeName": "노포지하차도",
+    "address": "부산 금정구 노포동 542-2"
+  },
+  {
+    "index": 44,
+    "name": "삼락생태공원감전1배수장지하차도",
+    "lat": 35.158119971076125,
+    "lng": 128.973581955421,
+    "source": "http://place.map.kakao.com/393770713",
+    "placeName": "삼락생태공원감전1배수장지하차도",
+    "address": "부산 사상구 감전동 873-7"
+  },
+  {
+    "index": 45,
+    "name": "방통대지하차도",
+    "lat": 35.2256782515896,
+    "lng": 129.006026840446,
+    "source": "http://place.map.kakao.com/140450185",
+    "placeName": "방통대지하차도",
+    "address": "부산 북구 화명동 2251"
+  },
+  {
+    "index": 46,
+    "name": "산업인력공단옆지하차도",
+    "lat": 35.2465794864654,
+    "lng": 129.009629632215,
+    "source": "http://place.map.kakao.com/2025197968",
+    "placeName": "산업인력공단옆지하차도",
+    "address": "부산 북구 금곡동 1871"
+  },
+  {
+    "index": 47,
+    "name": "중동지하차도",
+    "lat": 35.16642595277347,
+    "lng": 129.1655715152941,
+    "source": "http://place.map.kakao.com/8070972",
+    "placeName": "중동지하차도",
+    "address": "부산 해운대구 좌동 산 147"
+  },
+  {
+    "index": 48,
+    "name": "해송지하차도",
+    "lat": 35.2647287278692,
+    "lng": 129.232189421527,
+    "source": "http://place.map.kakao.com/1888742598",
+    "placeName": "해송지하차도",
+    "address": "부산 기장군 일광읍 삼성리 56-14"
+  }
+]

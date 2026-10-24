@@ -48,6 +48,9 @@ public class ManagerNotification {
     @Column(name = "ref_id")
     private Long refId;
 
+    @Column(name = "is_urgent")
+    private boolean urgent;       // 긴급 알림 (화면 긴급 팝업 + 푸시 높은 우선순위)
+
     @Generated
     @Column(name = "created_at", insertable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -74,6 +77,9 @@ public class ManagerNotification {
 
     public Long getRefId() { return refId; }
     public void setRefId(Long refId) { this.refId = refId; }
+
+    public boolean isUrgent() { return urgent; }
+    public void setUrgent(boolean urgent) { this.urgent = urgent; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
 }

@@ -36,6 +36,8 @@ public class AlertLogController {
      *  underpassId, regionId : 공통 Scope 조건 (REGIONAL_ADMIN은 본인 담당 지역으로 고정)
      *  customerId            : 그 고객에게 나간 알림만
      *  alertType             : PREDICTIVE/FINAL 중 하나만
+     *  received              : false 면 푸시가 한 번도 도착하지 못한 알림만(미수신 모아보기), true 면 도착한 알림만.
+     *                          응답의 pushStatus 로 이유도 알 수 있다 (FAIL 발송 실패 / NO_PUSH 보낼 기기 없음·푸시 꺼 둠 / PENDING 발송 중)
      *  carNum                : 공통 Vehicle 조건 (공백 무시 포함검색. 예전 keyword)
      *  startDate~endDate     : 공통 Period 조건 (발송일, endDate 당일 포함)
      *  page, size            : 공통 Page 조건
@@ -46,10 +48,11 @@ public class AlertLogController {
             @ModelAttribute ScopeQuery scope,
             @RequestParam(name = "customerId", required = false) Long customerId,
             @RequestParam(name = "alertType", required = false) AlertType alertType,
+            @RequestParam(name = "received", required = false) Boolean received,
             @ModelAttribute VehicleQuery vehicle,
             @ModelAttribute PeriodQuery period,
             @ModelAttribute PageQuery page) {
         period.validate();
-        return ApiResponse.ok(alertService.getAlertLogs(loginUser, scope, customerId, alertType, vehicle, period, page));
+        return ApiResponse.ok(alertService.getAlertLogs(loginUser, scope, customerId, alertType, received, vehicle, period, page));
     }
 }

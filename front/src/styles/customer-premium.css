@@ -1,0 +1,202 @@
+/* Customer editorial/form pages only. Map routes never receive these classes. */
+#app .customer-editorial { background:var(--r-canvas); color:var(--r-ink); }
+#app .customer-editorial .customer-page-layout {
+  width:100%; max-width:1440px; margin:0 auto; padding:32px 32px 64px;
+  display:grid; grid-template-columns:208px minmax(0,1fr); column-gap:32px; row-gap:0;
+  align-items:start; min-height:calc(100dvh - 330px);
+}
+#app .customer-editorial .customer-page-layout.is-home { display:block; padding-top:24px; }
+#app .customer-editorial .customer-page-layout.is-home>.customer-breadcrumb { margin-bottom:20px; }
+#app .customer-editorial .customer-page-layout>.customer-breadcrumb { margin:0 0 24px; font-size:12px; line-height:20px; }
+#app .customer-editorial .customer-page-body { min-width:0; }
+#app .customer-editorial .customer-page-body>.customer-content { padding:0; max-width:none; width:100%; min-height:0; background:transparent; }
+#app .customer-editorial .customer-section-sidebar {
+  position:sticky; top:24px; padding:16px; align-self:start; min-width:0; max-height:none;
+  border:1px solid var(--r-line); border-radius:16px; background:var(--r-surface); box-shadow:0 4px 18px #15385906;
+}
+#app .customer-editorial .customer-section-sidebar a.section-sidebar-title {
+  display:block; margin:0 0 16px; padding:10px 10px 18px; background:transparent; border:0;
+  border-bottom:1px solid var(--r-line); border-radius:0; box-shadow:none; color:var(--r-ink); font-size:19px; font-weight:750; line-height:1.4;
+}
+#app .customer-editorial .customer-section-sidebar nav { display:flex; flex-direction:column; gap:8px; }
+#app .customer-editorial .customer-section-sidebar nav a { display:flex; align-items:center; min-height:46px; padding:12px 14px; line-height:1.6; font-size:14px; border-radius:9px; color:var(--r-muted); }
+#app .customer-editorial .customer-section-sidebar nav a[aria-current=page] { background:var(--r-selected); color:var(--r-accent); box-shadow:none; font-weight:650; }
+#app .customer-editorial .section-sidebar-bottom { margin-top:20px; padding:18px 10px 4px; gap:14px; }
+
+/* Common type scale; page-specific components can refine it. */
+#app :where(.customer-editorial) .customer-content h1 { font-size:clamp(28px,3vw,38px); line-height:1.35; letter-spacing:-.04em; margin-bottom:24px; }
+#app :where(.customer-editorial) .customer-content h2 { font-size:clamp(23px,2.2vw,30px); line-height:1.45; letter-spacing:-.035em; }
+#app :where(.customer-editorial) .customer-content :is(p,li,dd) { font-size:15px; line-height:1.8; word-break:keep-all; overflow-wrap:anywhere; }
+
+/* Header width follows the content, instead of stretching every group apart. */
+#app .customer-editorial .customer-header { padding:0 32px; }
+#app .customer-editorial .customer-header-inner {
+  width:100%; max-width:1376px; margin:0 auto; min-width:0; min-height:84px; padding:8px 0;
+  display:grid; grid-template-columns:auto minmax(0,1fr) auto; grid-template-rows:auto; gap:20px;
+}
+#app .customer-editorial .customer-logo { grid-column:1; grid-row:1; font-size:25px; }
+#app .customer-editorial .customer-main-nav { display:flex; align-items:center; justify-content:center; width:100%; max-width:none; grid-column:2; grid-row:1; gap:clamp(12px,2vw,30px); }
+#app .customer-editorial .customer-menu { min-width:0; }
+#app .customer-editorial .customer-menu-link { width:auto; height:64px; min-height:44px; padding:0 10px; font-size:15px; line-height:1.5; letter-spacing:0; }
+#app .customer-editorial .customer-member-nav { grid-column:3; grid-row:1; gap:10px; max-width:none; flex-wrap:nowrap; font-size:12px; }
+#app .customer-editorial .header-download { padding:10px 12px; }
+#app .customer-editorial .customer-header-dropdown { display:block; }
+#app .customer-editorial .header-dropdown-columns { width:min(100%,720px); max-width:720px; margin:0 auto; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; padding:24px 16px; }
+#app .customer-editorial .header-dropdown-column a { font-size:14px; }
+
+/* Shared service pages are nested in BackendLayout, even for customers. */
+#app .customer-editorial .customer-page-body :is(.backend-layout,.backend-main,.page) { background:transparent; }
+#app .customer-editorial .customer-page-body .backend-main { padding:0; }
+#app .customer-editorial .service-heading { margin-bottom:26px; gap:20px; align-items:center; }
+#app .customer-editorial .service-heading h1 { font-size:30px; line-height:1.4; letter-spacing:-.04em; margin:0; text-align:left; }
+#app .customer-editorial .service-workspace { font-size:14px; line-height:1.65; }
+#app .customer-editorial :is(.service-filters,.notification-center-tools) { padding:20px 22px; margin-bottom:24px; gap:16px; border:1px solid var(--r-line); border-radius:14px; }
+#app .customer-editorial .service-filters label { gap:8px; min-width:0; color:var(--r-muted); font-size:13px; }
+#app .customer-editorial .service-filters .service-form-fields { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px; flex:1 1 100%; width:100%; }
+#app .customer-editorial .service-filters .service-form-fields>label { width:auto; min-width:0; }
+#app .customer-editorial .service-filters .service-form-fields :is(input:not([type=checkbox]):not([type=radio]),select) { width:100%; max-width:100%; }
+#app .customer-editorial :is(.service-filters,.service-form-fields) :is(input:not([type=checkbox]):not([type=radio]),select,textarea) { min-height:44px; padding:10px 12px; line-height:1.5; }
+#app .customer-editorial :is(.service-tabs,.filter-chips) { gap:10px; margin-bottom:20px; }
+#app .customer-editorial .service-table :is(th,td) { padding:16px 18px; line-height:1.65; vertical-align:middle; }
+#app .customer-editorial .service-table th { font-size:12px; font-weight:650; }
+#app .customer-editorial .service-table td { font-size:14px; }
+#app .customer-editorial .service-table td :is(a,button) { line-height:1.6; }
+#app .customer-editorial .service-pagination { margin-top:24px; gap:8px; }
+#app .customer-editorial .service-pagination button { min-width:40px; min-height:40px; }
+#app .customer-editorial .faq-accordion summary { padding:20px; gap:14px; }
+#app .customer-editorial .faq-accordion summary strong { line-height:1.7; }
+#app .customer-editorial .faq-inline-answer { padding:20px 24px; line-height:1.85; }
+
+/* Login and sign-up remain readable forms rather than full-width empty panels. */
+#app .customer-editorial .is-auth .customer-page-body { width:100%; max-width:660px; justify-self:center; }
+#app .customer-editorial .auth-service { padding:32px; border:1px solid var(--r-line); border-radius:18px; background:var(--r-surface); box-shadow:0 10px 32px #14375109; }
+#app .customer-editorial .auth-service .service-heading { margin-bottom:28px; }
+#app .customer-editorial .auth-service .service-heading h1 { font-size:28px; }
+#app .customer-editorial .auth-service :is(.auth-field-group,.service-form-fields) { margin:0; }
+#app .customer-editorial .auth-service .auth-field-group { padding:0 0 24px; }
+#app .customer-editorial .auth-service .service-form-fields { gap:18px; }
+#app .customer-editorial .auth-service .auth-buttons { gap:12px; margin-top:22px; }
+#app .customer-editorial .auth-service .auth-buttons button { min-height:48px; border-radius:9px; }
+#app .customer-editorial .auth-service .login-form .service-form-fields { width:100%; max-width:none; }
+#app .customer-editorial .auth-service .login-form .auth-buttons button[type=submit] { width:100%; }
+#app .customer-editorial .auth-service .auth-links { padding-top:20px; margin-top:24px; border-top:1px solid var(--r-line); gap:12px 18px; flex-wrap:wrap; }
+
+/* Account and inquiry pages use the same sidebar and surface rhythm. */
+#app .customer-editorial .customer-page-layout.is-mypage { display:block; }
+#app .customer-editorial .customer-page-layout.is-mypage>.customer-breadcrumb { margin-left:240px; }
+#app .customer-editorial .mypage-layout { display:grid; grid-template-columns:208px minmax(0,1fr); gap:32px; padding:0; margin:0; width:100%; min-height:0; max-width:none; }
+#app .customer-editorial .mypage-sidebar { position:sticky; top:24px; padding:20px 16px; border:1px solid var(--r-line); border-radius:16px; background:var(--r-surface); }
+#app .customer-editorial .mypage-sidebar h2 { margin:0 10px 18px; padding-bottom:18px; border-bottom:1px solid var(--r-line); font-size:19px; }
+#app .customer-editorial .mypage-sidebar nav { gap:8px; }
+#app .customer-editorial .mypage-sidebar nav a { padding:12px 14px; border-radius:9px; min-height:46px; font-size:14px; line-height:1.6; }
+#app .customer-editorial .mypage-sidebar nav a[aria-current=page] { background:var(--r-selected); color:var(--r-accent); }
+#app .customer-editorial .mypage-body { min-width:0; }
+#app .customer-editorial .account-service { max-width:900px; margin:0; }
+#app .customer-editorial :is(.account-panel,.account-actions,.profile-form,.mypage-card) { padding:26px; margin-bottom:22px; border-radius:14px !important; }
+#app .customer-editorial :is(.account-panel,.account-actions,.profile-form) h2 { margin:0 0 22px; font-size:21px; }
+#app .customer-editorial .account-summary { gap:14px 20px; margin:0; }
+#app .customer-editorial .account-summary :is(dt,dd) { line-height:1.7; }
+#app .customer-editorial .account-panel .service-form-fields { gap:18px; }
+#app .customer-editorial .account-panel form>label { max-width:none; }
+#app .customer-editorial .account-panel>button { margin-top:22px; }
+#app .customer-editorial .notification-center-list { margin-top:20px; }
+#app .customer-editorial .notification-center-item { padding:20px; gap:14px; }
+#app .customer-editorial .mypage-body .wire-page>.wrap { padding:0; }
+#app .customer-editorial .mypage-body .wire-page .main { padding:0; }
+
+/* Footer belongs to the same blue-gray palette as the customer content. */
+#app .customer-editorial .customer-footer { background:var(--r-surface); border-top:1px solid var(--r-line); color:var(--r-ink); }
+#app .customer-editorial .customer-footer-inner { width:100%; max-width:1440px; padding:36px 32px 28px; margin:0 auto; }
+#app .customer-editorial .customer-footer-brand>a { color:var(--r-brand); }
+#app .customer-editorial .customer-footer-brand>a>span { color:var(--r-accent); }
+#app .customer-editorial .customer-footer :is(p,.customer-footer-bottom) { color:var(--r-muted); }
+#app .customer-editorial .customer-footer-app { color:var(--r-accent); border-color:var(--r-line); background:var(--r-selected); }
+
+/* Customer app content gets breathing room; all map and manager shells are excluded. */
+#app .customer-app-editorial .app-restored-body { background:var(--r-canvas); }
+#app .customer-app-editorial :is(.account-panel,.account-actions,.profile-form) { padding:20px; margin-bottom:16px; }
+#app .customer-app-editorial :is(.service-filters,.notification-center-tools) { padding:16px; gap:12px; border-radius:12px; }
+#app .customer-app-editorial .service-heading { gap:14px; margin-bottom:20px; }
+#app .customer-app-editorial .service-heading h1 { font-size:22px; line-height:1.4; }
+#app .customer-app-editorial .service-form-fields { gap:16px; }
+#app .customer-app-editorial .service-form-fields label { gap:8px; }
+#app .customer-app-editorial .auth-service { padding:20px 16px; }
+#app .customer-app-editorial .service-table :is(th,td) { line-height:1.65; }
+#app .customer-app-editorial .notification-center-item { padding:16px; }
+
+@media (max-width:1180px) {
+  #app .customer-editorial .customer-header-inner { grid-template-columns:auto minmax(0,1fr); gap:8px 20px; padding:12px 0 6px; }
+  #app .customer-editorial .customer-member-nav { grid-column:2; justify-content:flex-end; }
+  #app .customer-editorial .customer-main-nav { grid-column:1/-1; grid-row:2; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
+  #app .customer-editorial .customer-menu-link { height:44px; padding:0 6px; }
+  #app .customer-editorial .customer-page-layout { grid-template-columns:184px minmax(0,1fr); column-gap:24px; padding-left:24px; padding-right:24px; }
+  #app .customer-editorial .mypage-layout { grid-template-columns:184px minmax(0,1fr); gap:24px; }
+  #app .customer-editorial .customer-page-layout.is-mypage>.customer-breadcrumb { margin-left:208px; }
+  #app .customer-editorial .customer-section-sidebar { padding:12px; }
+}
+@media (max-width:900px) {
+  #app .customer-editorial .customer-page-layout { display:flex; flex-direction:column; gap:0; padding:24px 24px 44px; }
+  #app .customer-editorial .customer-page-layout>.customer-breadcrumb { width:100%; margin:0 0 20px; }
+  #app .customer-editorial .customer-page-body { width:100%; }
+  #app .customer-editorial .customer-section-sidebar { position:static; width:100%; margin-bottom:26px; padding:16px; overflow:visible; }
+  #app .customer-editorial .customer-section-sidebar a.section-sidebar-title { padding:0 2px; margin:0 0 14px; border:0; font-size:15px; }
+  #app .customer-editorial .customer-section-sidebar nav { flex-direction:row; flex-wrap:wrap; gap:8px; }
+  #app .customer-editorial .customer-section-sidebar nav a { padding:10px 14px; min-height:42px; font-size:13px; background:var(--r-soft); }
+  #app .customer-editorial .section-sidebar-bottom { flex-direction:row; flex-wrap:wrap; margin-top:16px; padding:14px 2px 0; }
+  #app .customer-editorial .is-auth .customer-page-body { align-self:center; }
+  #app .customer-editorial .customer-page-layout.is-mypage>.customer-breadcrumb { margin-left:0; }
+  #app .customer-editorial .mypage-layout { grid-template-columns:minmax(0,1fr); gap:24px; }
+  #app .customer-editorial .mypage-sidebar { position:static; padding:16px; }
+  #app .customer-editorial .mypage-sidebar h2 { margin:0 0 14px; padding:0; border:0; font-size:15px; }
+  #app .customer-editorial .mypage-sidebar nav { flex-direction:row; flex-wrap:wrap; }
+  #app .customer-editorial .mypage-sidebar nav a { background:var(--r-soft); font-size:13px; min-height:42px; padding:10px 14px; }
+  #app .customer-editorial .mypage-sidebar>button { margin-top:14px; }
+}
+@media (max-width:600px) {
+  #app .customer-editorial .customer-header { padding:0 16px; }
+  #app .customer-editorial .customer-header-inner { position:relative; grid-template-columns:minmax(0,1fr); gap:8px; padding:12px 0 6px; }
+  #app .customer-editorial .customer-member-nav .theme-toggle { position:absolute; top:6px; right:0; }
+  #app .customer-editorial .customer-logo { font-size:23px; }
+  #app .customer-editorial .customer-member-nav { grid-column:1; grid-row:2; flex-wrap:wrap; justify-content:flex-start; gap:8px; }
+  #app .customer-editorial .customer-main-nav { grid-column:1; grid-row:3; gap:4px; }
+  #app .customer-editorial .customer-menu-link { font-size:12px; padding:0 2px; }
+  #app .customer-editorial .header-dropdown-columns { gap:4px; padding:16px 8px; }
+  #app .customer-editorial .header-dropdown-column a { font-size:12px; padding:6px 2px; }
+  #app .customer-editorial .customer-page-layout { padding:20px 16px 36px; }
+  #app .customer-editorial .customer-page-layout.is-home { padding-top:18px; }
+  #app .customer-editorial .customer-section-sidebar { margin-bottom:24px; padding:14px; border-radius:12px; }
+  #app .customer-editorial .service-heading { flex-wrap:wrap; align-items:flex-start; gap:14px; margin-bottom:22px; }
+  #app .customer-editorial .service-heading h1 { font-size:26px; }
+  #app .customer-editorial :is(.service-filters,.notification-center-tools) { padding:16px; gap:14px; margin-bottom:22px; }
+  #app .customer-editorial .service-filters { display:flex; flex-wrap:wrap; align-items:flex-end; }
+  #app .customer-editorial .service-filters>label { flex:1 1 150px; min-width:0; }
+  #app .customer-editorial .service-filters>label :is(input,select) { width:100%; max-width:100%; }
+  #app .customer-editorial .service-filters .service-form-fields { grid-template-columns:minmax(0,1fr); }
+  #app .customer-editorial .service-table :is(th,td) { padding:14px 12px; font-size:13px; }
+  #app .customer-editorial .service-table-wrap { overflow:visible; }
+  #app .customer-editorial .service-table { display:block; min-width:0; width:100%; border-radius:inherit; overflow:hidden; }
+  #app .customer-editorial .service-table thead { position:absolute; width:1px; height:1px; padding:0; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+  #app .customer-editorial .service-table tbody { display:block; width:100%; }
+  #app .customer-editorial .service-table tr { display:grid; grid-template-columns:minmax(0,1fr); padding:18px; gap:8px; border-bottom:1px solid var(--r-line); }
+  #app .customer-editorial .service-table tr:last-child { border-bottom:0; }
+  #app .customer-editorial .service-table td { display:grid; grid-template-columns:64px minmax(0,1fr); align-items:start; gap:12px; width:100%; max-width:none; padding:0; border:0; overflow-wrap:anywhere; }
+  #app .customer-editorial .service-table td[data-label]::before { content:attr(data-label); color:var(--r-muted); font-size:12px; line-height:1.8; }
+  #app .customer-editorial .service-table td:is([data-label="제목"],:not([data-label])) { display:block; }
+  #app .customer-editorial .service-table td[data-label="제목"] { margin-bottom:6px; }
+  #app .customer-editorial .service-table td[data-label="제목"]::before { content:none; }
+  #app .customer-editorial .service-table .notice-title-button { width:100%; align-items:flex-start; white-space:normal; text-align:left; }
+  #app .customer-editorial .service-table .notice-title-button>span:first-child { flex-shrink:0; }
+  #app .customer-editorial .service-table tr:has(.notice-title-button) { display:flex; flex-wrap:wrap; gap:8px 16px; }
+  #app .customer-editorial .service-table tr:has(.notice-title-button)>td { display:inline-flex; width:auto; gap:6px; font-size:12px; }
+  #app .customer-editorial .service-table tr:has(.notice-title-button)>td[data-label="제목"] { flex:0 0 100%; }
+  #app .customer-editorial .service-table .service-actions { margin-top:6px; flex-wrap:wrap; }
+  #app .customer-editorial .auth-service { padding:24px 20px; border-radius:14px; }
+  #app .customer-editorial .auth-service .service-heading h1 { font-size:25px; }
+  #app .customer-editorial :is(.account-panel,.account-actions,.profile-form,.mypage-card) { padding:20px; margin-bottom:18px; }
+  #app .customer-editorial :is(.account-panel,.account-actions,.profile-form) h2 { font-size:20px; margin-bottom:20px; }
+  #app .customer-editorial .service-pagination { gap:6px; flex-wrap:wrap; }
+  #app .customer-editorial .service-pagination button { min-width:36px; min-height:40px; }
+  #app .customer-editorial .notification-center-item { padding:16px; }
+  #app .customer-editorial .customer-footer-inner { padding:28px 20px; }
+  #app .customer-editorial .public-chat-launcher { justify-content:center; width:48px; min-width:48px; height:48px; min-height:48px; padding:0; gap:0; font-size:0; line-height:0; right:16px; bottom:calc(20px + env(safe-area-inset-bottom,0px)); }
+}

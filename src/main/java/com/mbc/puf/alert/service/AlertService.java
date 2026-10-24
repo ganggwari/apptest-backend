@@ -27,10 +27,11 @@ public interface AlertService {
     void sendAlertsForPlate(com.mbc.puf.underpass.entity.Underpass underpass, com.mbc.puf.common.enums.CameraRole role,
                             java.util.List<com.mbc.puf.car.entity.Car> cars, String carNum);
 
-    // 알림 발송 이력 목록 (관리자용). Scope/Vehicle/Period/Page 공통 조건 + 고객·알림종류 필터
+    // 알림 발송 이력 목록 (관리자용). Scope/Vehicle/Period/Page 공통 조건 + 고객·알림종류·수신 여부 필터
+    // received=false 면 푸시가 한 번도 도착하지 못한 알림만(미수신 모아보기)
     PageResponse<AlertLogListItem> getAlertLogs(LoginUser loginUser, ScopeQuery scope, Long customerId,
-                                                AlertType alertType, VehicleQuery vehicle, PeriodQuery period,
-                                                PageQuery page);
+                                                AlertType alertType, Boolean received, VehicleQuery vehicle,
+                                                PeriodQuery period, PageQuery page);
 
     // 고객용 "내 알림" 목록 (문자처럼 보여주기용). customerId는 로그인한 본인으로 고정해서 넘긴다
     PageResponse<MyAlertItem> getMyAlerts(Long customerId, AlertType alertType, PeriodQuery period, PageQuery page);

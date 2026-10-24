@@ -1,0 +1,7 @@
+.deadline-timer {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.deadline-expired {
+  color: var(--danger,#b91c1c);
+}

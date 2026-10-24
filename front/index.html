@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#173d62" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="ROUTEL" />
+    <link rel="manifest" href="/customer.webmanifest" id="app-manifest" />
+    <link rel="apple-touch-icon" href="/icons/customer-180.png" id="app-touch-icon" />
+    <title>ROUTEL</title>
+    <script>
+      if(location.pathname.startsWith('/admin-app/')){document.getElementById('app-manifest').href='/admin.webmanifest';document.getElementById('app-touch-icon').href='/icons/admin-180.png';document.querySelector('meta[name=apple-mobile-web-app-title]').content='ROUTEL ???'}
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

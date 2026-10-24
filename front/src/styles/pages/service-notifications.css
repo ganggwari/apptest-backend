@@ -1,0 +1,135 @@
+.customer-notification-center {
+  min-width: 0;
+}
+.notification-center-tools {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.notification-category-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.notification-category-tabs button[aria-pressed=true] {
+  background: #225f9b;
+  color: #fff;
+  border-color: #225f9b;
+}
+.notification-category-tabs span {
+  margin-left: 6px;
+  font-size: 11px;
+}
+.notification-center-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+}
+.notification-center-actions label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.notification-center-actions input {
+  width: 16px;
+  height: 16px;
+  min-height: 16px;
+}
+.notification-center-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--surface);
+}
+.notification-center-list li+li {
+  border-top: 1px solid var(--line);
+}
+.customer-notification-center .notification-center-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 68px;
+  border: 0;
+  border-radius: 0;
+  padding: 16px;
+  text-align: left;
+  white-space: normal;
+}
+.notification-center-list .unread .notification-center-item {
+  background: #edf4fb;
+}
+.notification-center-category {
+  color: #225f9b;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+.notification-center-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.notification-center-item time {
+  font-size: 12px;
+  color: #64748b;
+  flex-shrink: 0;
+}
+.notification-unread-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #225f9b;
+  flex-shrink: 0;
+}
+.notification-center-body {
+  margin: 0;
+  padding: 16px 20px;
+  border-top: 1px solid var(--line);
+  font-size: 14px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.notification-center-empty {
+  padding: 32px;
+  text-align: center;
+  color: #64748b;
+  font-size: 14px;
+}
+@media (max-width:600px) {
+  .notification-center-tools {
+    gap: 12px;
+  }
+  .notification-center-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .customer-notification-center .notification-center-item {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 14px 12px;
+  }
+  .notification-center-title {
+    flex-basis: calc(100% - 60px);
+  }
+  .notification-center-item time {
+    width: calc(100% - 26px);
+    padding-left: 34px;
+    font-size: 11px;
+  }
+  .notification-center-body {
+    padding: 14px 12px;
+  }
+  .service-pagination {
+    font-size: 12px;
+  }
+}

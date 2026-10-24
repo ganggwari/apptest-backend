@@ -1,0 +1,29 @@
+.service-mobile {
+  width: 100%;
+  max-width: 430px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  background: var(--surface);
+}
+.service-mobile .backend-main {
+  padding: 16px 12px;
+}
+.service-mobile .server-summary {
+  grid-template-columns: repeat(2,minmax(0,1fr));
+}
+.service-mobile .server-main,.service-mobile .server-bottom {
+  grid-template-columns: 1fr;
+}
+.service-mobile .server-map .page-c-live-map .map-columns {
+  grid-template-columns: 1fr;
+}
+.service-mobile .service-form-fields {
+  grid-template-columns: 1fr;
+}
+.service-mobile .backend-header {
+  padding: 10px;
+  gap: 8px;
+}
+.service-mobile .backend-header button,.service-mobile .backend-header a {
+  font-size: 12px;
+}

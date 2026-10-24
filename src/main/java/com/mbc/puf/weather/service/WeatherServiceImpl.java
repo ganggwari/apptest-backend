@@ -6,6 +6,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.Locale;
 
 import org.springframework.data.domain.Limit;
@@ -17,7 +19,6 @@ import com.mbc.puf.common.exception.BusinessException;
 import com.mbc.puf.common.jpa.DbClock;
 import com.mbc.puf.weather.dto.UnderpassRainfallResponse;
 import com.mbc.puf.weather.dto.WeatherResponse;
-import com.mbc.puf.weather.entity.Weather;
 import com.mbc.puf.weather.entity.WeatherArea;
 import com.mbc.puf.weather.repository.WeatherAreaRepository;
 import com.mbc.puf.weather.repository.WeatherForecastRepository;
@@ -29,6 +30,7 @@ import jakarta.persistence.EntityManager;
 public class WeatherServiceImpl implements WeatherService {
 
     private static final int HOURLY_LIMIT = 24;   // 시간별 예보: 앞으로 24시간
+    private static final int OBSERVATION_MAX_AGE_HOURS = 3;   // 이보다 오래된 관측값은 현재 날씨로 보여주지 않는다
     private static final int DAILY_LIMIT = 7;     // 일별 예보: 최대 7일 (기상청 단기예보는 3일 안팎이라 있는 만큼만 나온다)
 
     private static final DateTimeFormatter OBSERVED_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
@@ -77,18 +79,23 @@ public class WeatherServiceImpl implements WeatherService {
     private final WeatherAreaRepository areaRepository;
     private final WeatherRepository weatherRepository;
     private final WeatherForecastRepository forecastRepository;
+    private final KmaWeatherStore kmaStore;
     private final DbClock dbClock;
     private final EntityManager em;
 
     public WeatherServiceImpl(WeatherAreaRepository areaRepository, WeatherRepository weatherRepository,
-                              WeatherForecastRepository forecastRepository, DbClock dbClock, EntityManager em) {
+                              WeatherForecastRepository forecastRepository, KmaWeatherStore kmaStore,
+                              DbClock dbClock, EntityManager em) {
         this.areaRepository = areaRepository;
         this.weatherRepository = weatherRepository;
         this.forecastRepository = forecastRepository;
+        this.kmaStore = kmaStore;
         this.dbClock = dbClock;
         this.em = em;
     }
 
+    // 화면 표출용: 기상청 실제 값(메모리, KmaWeatherStore)만 읽는다. DB 의 weather / weather_forecast 는 읽지 않는다.
+    // 그 테이블은 침수모델(FastAPI)용 시연 stub 이고, 아래 getUnderpassRainfall / getUnderpassForecast 가 그쪽을 읽는다
     @Override
     @Transactional(readOnly = true)
     public WeatherResponse getWeather(BigDecimal lat, BigDecimal lng) {
@@ -96,41 +103,46 @@ public class WeatherServiceImpl implements WeatherService {
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "날씨 지역 정보가 없습니다."));
         LocalDateTime now = dbClock.now();
 
-        List<WeatherResponse.Hour> hourly = forecastRepository
-                .findByAreaIdAndTargetAtGreaterThanOrderByTargetAtAsc(area.getId(), now, Limit.of(HOURLY_LIMIT))
-                .stream()
-                .map(row -> new WeatherResponse.Hour(row.getTargetAt().format(HOUR_FORMAT),
-                        row.getTemperatureC(), row.getRainfallMm(), row.getPrecipitationProb()))
+        List<KmaClient.ForecastPoint> forecast = kmaStore.forecast(area.getId(), now);
+        List<WeatherResponse.Hour> hourly = forecast.stream().limit(HOURLY_LIMIT)
+                .map(p -> new WeatherResponse.Hour(p.targetAt().format(HOUR_FORMAT), p.temp(), p.rain(), p.rainProb()))
                 .toList();
 
-        List<WeatherResponse.Day> daily = forecastRepository
-                .findDailyForecast(area.getId(), now.toLocalDate().atStartOfDay(), Limit.of(DAILY_LIMIT)).stream()
-                .map(row -> new WeatherResponse.Day(((LocalDate) row[0]).format(DAY_FORMAT),
-                        (BigDecimal) row[1], (BigDecimal) row[2], (Integer) row[3]))
+        // 일별: 예보를 날짜별로 묶어 최저/최고 기온, 최대 강수확률(초단기예보에는 확률이 없어 비어 있을 수 있음)
+        Map<LocalDate, List<KmaClient.ForecastPoint>> byDay = new TreeMap<>();
+        for (KmaClient.ForecastPoint p : forecast) {
+            byDay.computeIfAbsent(p.targetAt().toLocalDate(), d -> new java.util.ArrayList<>()).add(p);
+        }
+        List<WeatherResponse.Day> daily = byDay.entrySet().stream().limit(DAILY_LIMIT)
+                .map(e -> new WeatherResponse.Day(e.getKey().format(DAY_FORMAT),
+                        e.getValue().stream().map(KmaClient.ForecastPoint::temp).filter(java.util.Objects::nonNull)
+                                .min(BigDecimal::compareTo).orElse(null),
+                        e.getValue().stream().map(KmaClient.ForecastPoint::temp).filter(java.util.Objects::nonNull)
+                                .max(BigDecimal::compareTo).orElse(null),
+                        e.getValue().stream().map(KmaClient.ForecastPoint::rainProb).filter(java.util.Objects::nonNull)
+                                .max(Integer::compareTo).orElse(null)))
                 .toList();
 
-        // 관측값이 아직 없으면 현재 날씨 칸은 비워 보낸다(화면에 "미수신"으로 표시됨)
-        Weather current = weatherRepository
-                .findByAreaIdAndObservedAtLessThanEqualOrderByObservedAtDesc(area.getId(), now, Limit.of(1))
-                .stream().findFirst().orElse(null);
+        // 관측값이 아직 없으면(서버를 켠 직후 등) 현재 날씨 칸은 비워 보낸다(화면에 "미수신"으로 표시됨)
+        KmaClient.Observation current = kmaStore.observation(area.getId(), now, OBSERVATION_MAX_AGE_HOURS);
         if (current == null) {
             return new WeatherResponse(area.getName(), null, null, null, null, null, hourly, daily);
         }
-        return new WeatherResponse(area.getName(), current.getTemperatureC(), current.getHumidityPct(),
-                current.getRainfallMm(), conditionOf(current), current.getObservedAt().format(OBSERVED_FORMAT),
+        return new WeatherResponse(area.getName(), current.temp(), current.humidity(), current.rain(),
+                conditionOf(current.rain(), current.humidity()), current.observedAt().format(OBSERVED_FORMAT),
                 hourly, daily);
     }
 
     // 관측값에는 "하늘 상태"가 없어서 강수량과 습도로 맑음/구름많음/흐림/비/소나기를 정한다
-    private static String conditionOf(Weather w) {
-        BigDecimal rain = w.getRainfallMm() == null ? BigDecimal.ZERO : w.getRainfallMm();
+    private static String conditionOf(BigDecimal rainfall, Integer humidityPct) {
+        BigDecimal rain = rainfall == null ? BigDecimal.ZERO : rainfall;
         if (rain.compareTo(new BigDecimal("5")) >= 0) {
             return "소나기";
         }
         if (rain.compareTo(new BigDecimal("0.1")) >= 0) {
             return "비";
         }
-        int humidity = w.getHumidityPct() == null ? 0 : w.getHumidityPct();
+        int humidity = humidityPct == null ? 0 : humidityPct;
         if (humidity >= 85) {
             return "흐림";
         }

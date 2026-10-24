@@ -1,0 +1,26 @@
+.verification-code-input {
+  display: flex;
+  gap: 8px;
+  width: min(100%, 328px);
+  min-width: 0;
+}
+.verification-code-input input {
+  box-sizing: border-box;
+  flex: 1 1 0;
+  width: 0;
+  min-width: 0;
+  height: 48px;
+  padding: 0;
+  border: 1px solid var(--line, #c9ced6);
+  border-radius: 8px;
+  background: var(--surface, #fff);
+  color: inherit;
+  text-align: center;
+  font: inherit;
+  font-size: 22px;
+  font-weight: 600;
+}
+.verification-code-input input:focus-visible {
+  outline: 2px solid var(--primary, #1c527d);
+  outline-offset: 2px;
+}

@@ -1,0 +1,175 @@
+/* Shared navigation: equal outer columns keep the main menu on the screen's
+   centre line, independently of login state and the account actions. */
+#app .customer-shell .customer-header { padding-inline:24px; }
+#app .customer-shell .customer-header .customer-header-inner {
+  position:relative; display:grid; align-items:center; width:100%; max-width:1600px;
+  margin-inline:auto; min-width:0; min-height:84px; padding:8px 0;
+  grid-template-columns:minmax(0,1fr) 560px minmax(0,1fr); grid-template-rows:auto; gap:16px;
+}
+#app .customer-shell .customer-header .customer-logo { grid-column:1; grid-row:1; font-size:28px; line-height:36px; justify-self:start; }
+#app .customer-shell .customer-header .customer-main-nav {
+  grid-column:2; grid-row:1; display:grid; grid-template-columns:repeat(4,minmax(0,1fr));
+  width:100%; max-width:none; gap:0; justify-self:center;
+}
+#app .customer-shell .customer-header .customer-menu-link { width:100%; height:64px; padding:10px 4px; font-size:18px; line-height:26px; font-weight:600; white-space:nowrap; letter-spacing:-.025em; }
+#app .customer-shell .customer-header .customer-member-nav { grid-column:3; grid-row:1; justify-content:flex-end; flex-wrap:nowrap; max-width:none; gap:10px; font-size:13px; }
+#app .customer-shell .customer-header .customer-member-nav .theme-toggle { position:static; }
+#app .customer-shell .customer-header .header-download { padding:10px 12px; white-space:nowrap; }
+#app .customer-shell .customer-header .customer-header-dropdown { display:block; border-top:1px solid var(--r-line); border-bottom:1px solid var(--r-line); }
+#app .customer-shell .customer-header .header-dropdown-columns { width:560px; max-width:100%; margin-inline:auto; padding:20px 0; gap:0; }
+#app .customer-shell .customer-header .header-dropdown-column a { padding:9px 6px; font-size:15px; line-height:23px; border-radius:8px; }
+
+/* Apply the same visible switch to modern and legacy administrator headers. */
+#app .admin-interface .wire-page>.hdr { font-size:14px; }
+#app .admin-interface .wire-page>.hdr :is(.admin-home-logo,.hdr-l strong) { font-size:22px; line-height:30px; letter-spacing:.01em; }
+#app .admin-interface .wire-page>.hdr :is(.user,.backend-user) { font-size:14px; }
+#app .admin-interface .wire-page>.hdr .theme-toggle {
+  flex:0 0 56px; width:56px; min-width:56px; max-width:56px; height:44px; min-height:44px;
+  padding:0; display:inline-flex; align-items:center; justify-content:center;
+  background:transparent!important; border:0!important; box-shadow:none;
+}
+#app .manager-app-titlebar { display:grid; grid-template-columns:56px minmax(0,1fr) 56px; gap:6px; min-height:50px; }
+#app .manager-app-titlebar strong { text-align:center; font-size:18px; line-height:26px; overflow-wrap:anywhere; }
+
+/* Scores must have room for decimals; let the facility name wrap, never push
+   the list wider than its resizable widget. Vertical scrolling is retained. */
+#app .page-admin-dashboard .fixed-top5 .rank { min-width:0; width:100%; box-sizing:border-box; overflow-x:hidden; }
+#app .page-admin-dashboard .fixed-top5 .rank>li { display:grid; grid-template-columns:22px minmax(0,1fr) auto; gap:10px; min-width:0; box-sizing:border-box; }
+#app .page-admin-dashboard .fixed-top5 .rank .t { min-width:0; white-space:normal; overflow-wrap:anywhere; }
+#app .page-admin-dashboard .fixed-top5 .rank .sc { width:auto; min-width:5.5ch; white-space:nowrap; font-variant-numeric:tabular-nums; }
+#app .page-admin-dashboard .fixed-top5 .widget-original-content { overflow-x:hidden!important; }
+
+/* The public underpass map keeps its map, tool and sheet coordinates. Only
+   the surrounding surfaces, inputs, list and observation plot are repainted. */
+#app .legacy-live-map {
+  --surface:var(--r-surface); --foreground:var(--r-ink); --ink:var(--r-ink);
+  --ink-sub:var(--r-muted); --background:var(--r-canvas); --line:var(--r-line); --line-soft:var(--r-line);
+  color:var(--r-ink); background:var(--r-canvas);
+}
+#app .customer-page-layout.is-map { background:var(--r-canvas); }
+#app .customer-page-layout.is-map .customer-section-sidebar { padding:16px; border-color:var(--r-line); border-radius:14px; background:var(--r-surface); box-shadow:var(--r-shadow); }
+#app .customer-page-layout.is-map .section-sidebar-title { padding:4px 4px 16px; margin-bottom:14px; background:transparent; color:var(--r-ink); box-shadow:none; border-radius:0; font-size:18px; }
+#app .customer-page-layout.is-map .customer-section-sidebar nav a { padding:12px; min-height:44px; border-radius:8px; color:var(--r-muted); }
+#app .customer-page-layout.is-map .customer-section-sidebar nav a[aria-current=page] { color:var(--r-accent); background:var(--r-selected); box-shadow:none; }
+#app .legacy-live-map :is(.panel,.app-map-search,.mapw .pill,.traffic-map-toggles,.map-weather-widget,.customer-map-control-dock) { background:var(--r-surface); color:var(--r-ink); border-color:var(--r-line); box-shadow:var(--r-shadow); }
+#app .legacy-live-map .panel { border-radius:16px; }
+#app .legacy-live-map :is(.panel .ph,.back-to-list,.customer-list-pagination) { background:var(--r-soft); color:var(--r-ink); border-color:var(--r-line); }
+#app .legacy-live-map .panel .ph { border-bottom:1px solid var(--r-line); }
+#app .legacy-live-map .panel :is(input,select) { background:var(--r-surface); color:var(--r-ink); border-color:var(--r-line); border-radius:8px; }
+#app .legacy-live-map .lst>li { border-color:var(--r-line); }
+#app .legacy-live-map .lst .it { color:var(--r-ink); background:var(--r-surface); transition:background-color 140ms ease; }
+#app .legacy-live-map :is(.det .sub,.it .sub,.det small) { color:var(--r-muted); }
+#app .legacy-live-map .det .nm { color:var(--r-ink); font-size:21px; line-height:1.45; }
+#app .legacy-live-map .det .kv>div { border-color:var(--r-line); background:var(--r-soft); border-radius:10px; }
+#app .legacy-live-map .det .kv strong { color:var(--r-accent); }
+#app .legacy-live-map :is(.btn,.chip,.customer-list-pagination button) { border-color:var(--r-line); background:var(--r-surface); color:var(--r-ink); border-radius:8px; }
+#app .legacy-live-map :is(.chip.on,button[aria-pressed=true]:not(.legend-filter-button)) { border-color:var(--r-accent); background:var(--r-selected); color:var(--r-accent); }
+#app .legacy-live-map .risk-history-chart { background:var(--r-soft); border:1px solid var(--r-line); border-radius:10px; }
+#app .legacy-live-map .risk-history-chart text { fill:var(--r-muted); }
+#app .legacy-live-map .risk-history-chart path[stroke='#225f9b'] { stroke:var(--r-accent); }
+#app .legacy-live-map .risk-history-chart circle[fill='#225f9b'] { fill:var(--r-accent); }
+#app .legacy-live-map .risk-history-chart path[stroke-width='3']:not([stroke-dasharray]) { animation:routel-observation-enter 550ms var(--motion-ease); }
+#app .legacy-live-map .map-weather-widget { background:transparent; box-shadow:none; }
+#app :is(.map-weather-marker,.map-weather-detail) { background:var(--r-surface); color:var(--r-ink); border-color:var(--r-line); box-shadow:var(--r-shadow); }
+/* Earlier mobile dark rules use !important; keep the weather card on the
+   shared surface as well, including its expanded state. */
+#app .mobile-app-map .map-weather-widget :is(.map-weather-marker,.map-weather-detail) { background:var(--r-surface)!important; color:var(--r-ink)!important; border-color:var(--r-line); }
+#app .map-weather-detail>header { background:var(--r-soft); border-color:var(--r-line); }
+#app :is(.map-weather-marker small,.map-weather-overview span,.map-weather-detail dt,.map-weather-detail footer,.map-weather-hourly li small) { color:var(--r-muted); border-color:var(--r-line); }
+
+/* Side drawers share dialog spacing and surfaces without changing which side
+   they open from, their width, or their focus/close behaviour. */
+#app :is(.backend-menu,.wire-page .side,.profile-menu,.board-library,.widget-library,.wire-page .drawer) { background:var(--r-surface); color:var(--r-ink); border-color:var(--r-line); box-shadow:var(--r-overlay-shadow); }
+#app :is(.backend-menu-head,.side-top,.profile-menu>header,.board-library>header,.widget-library>header,.drawer-head) { padding:20px 22px; gap:16px; border-bottom:1px solid var(--r-line); background:var(--r-soft); }
+#app :is(.backend-menu,.wire-page .side,.profile-menu) nav { padding:18px 16px; gap:6px; }
+#app :is(.backend-menu,.wire-page .side,.profile-menu) nav a { min-height:44px; padding:12px 14px; border-radius:8px; line-height:1.6; }
+#app :is(.backend-menu,.wire-page .side,.profile-menu) :is(.side-user,.admin-identity) { padding:20px 22px; border-color:var(--r-line); }
+#app .wire-page .drawer :is(.drawer-body,.dr-b) { padding:22px; }
+@media (hover:hover) {
+  #app .mobile-app-map .map-weather-widget .map-weather-marker:hover { background:var(--r-soft)!important; }
+  #app .legacy-live-map .lst .it:hover { background:var(--r-selected); }
+  #app .customer-header .header-dropdown-column a:hover { background:var(--r-selected); color:var(--r-accent); }
+}
+@media (max-width:1399px) {
+  #app .customer-shell .customer-header .customer-header-inner { grid-template-columns:auto minmax(0,1fr); grid-template-rows:auto auto; gap:6px 20px; padding:10px 0 4px; }
+  #app .customer-shell .customer-header .customer-member-nav { grid-column:2; grid-row:1; }
+  #app .customer-shell .customer-header .customer-main-nav { grid-column:1/-1; grid-row:2; max-width:720px; }
+  #app .customer-shell .customer-header .customer-menu-link { height:48px; }
+  #app .customer-shell .customer-header .header-dropdown-columns { width:720px; }
+}
+@media (max-width:700px) {
+  #app .customer-shell .customer-header { padding-inline:16px; }
+  #app .customer-shell .customer-header .customer-logo { font-size:25px; }
+  #app .customer-shell .customer-header .customer-menu-link { font-size:15px; }
+  #app .customer-shell .customer-header .customer-member-nav { font-size:12px; gap:8px; }
+  #app .customer-shell .customer-header .header-dropdown-column a { font-size:13px; }
+}
+@media (max-width:600px) {
+  #app .customer-shell .customer-header .customer-header-inner { grid-template-columns:minmax(0,1fr); gap:8px; }
+  #app .customer-shell .customer-header .customer-member-nav { grid-column:1; grid-row:2; justify-content:flex-start; flex-wrap:wrap; }
+  #app .customer-shell .customer-header .customer-member-nav .theme-toggle { position:absolute; top:6px; right:0; }
+  #app .customer-shell .customer-header .customer-main-nav { grid-column:1; grid-row:3; }
+  #app .customer-shell .customer-header .customer-menu-link { font-size:14px; padding-inline:2px; }
+  #app .admin-shell .wire-page>.hdr { flex-wrap:wrap; height:auto; max-height:none; padding:10px 12px; }
+  #app .admin-shell .wire-page>.hdr .hdr-r { justify-content:flex-end; flex:1 1 auto; flex-wrap:wrap; }
+  #app .admin-shell .wire-page>.hdr .hdr-l { margin-right:8px; }
+}
+@media (max-width:360px) {
+  #app .customer-shell .customer-header .customer-menu-link { font-size:13px; letter-spacing:-.04em; }
+}
+@media (prefers-reduced-motion:reduce) {
+  #app .legacy-live-map .risk-history-chart path { animation:none; }
+  #app .legacy-live-map .lst .it { transition:none; }
+}
+
+/* Summary drawer actions share equal columns, including navigation links. */
+#app .restored-summary-drawer .service-actions {
+  display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:stretch; gap:10px;
+}
+#app .restored-summary-drawer .service-actions>:is(button,a),
+#app .restored-summary-drawer .service-actions .tunnel-cctv-trigger {
+  display:flex; align-items:center; justify-content:center; width:100%; min-width:0;
+  min-height:46px; height:auto; margin:0; padding:10px 12px; box-sizing:border-box;
+  border:1px solid var(--r-line); border-radius:8px; background:var(--r-surface);
+  color:var(--r-ink); font:inherit; font-size:13px; line-height:1.5;
+  text-align:center; text-decoration:none; white-space:normal; overflow-wrap:anywhere;
+}
+#app .restored-summary-drawer .service-actions>button:disabled { color:var(--r-muted); background:var(--r-soft); opacity:.55; }
+
+/* Recent events: a continuous neutral rail with gently glowing status nodes.
+   Keep the existing widget size, internal scrolling and ten-item pagination. */
+#app .water-dashboard .fixed-events .tl { padding:4px 8px 4px 0; }
+#app .water-dashboard .fixed-events .tl::before { content:none; }
+#app .water-dashboard .fixed-events .tl>li {
+  --timeline-color:var(--dash-teal);
+  position:relative; display:block; padding:0 0 0 30px; margin:0 0 12px;
+  border:0; background:transparent; border-radius:0; box-shadow:none;
+}
+#app .water-dashboard .fixed-events .tl>li[data-event=RISK_LEVEL_UP] { --timeline-color:var(--dash-orange); }
+#app .water-dashboard .fixed-events .tl>li:is([data-risk=DANGER],[data-risk=BLOCKED]) { --timeline-color:#ed677b; }
+#app .water-dashboard .fixed-events .tl>li::before {
+  content:""; position:absolute; left:6px; top:24px; width:10px; height:10px;
+  box-sizing:border-box; border:2px solid var(--timeline-color); border-radius:50%;
+  background:var(--dash-surface); z-index:1;
+  animation:dashboard-timeline-node 2.8s ease-in-out infinite;
+}
+#app .water-dashboard .fixed-events .tl>li::after {
+  content:""; position:absolute; left:10px; top:37px; bottom:-21px; width:2px;
+  background:color-mix(in srgb,var(--dash-muted) 25%,var(--dash-surface)); border-radius:2px;
+}
+#app .water-dashboard .fixed-events .tl>li:last-child::after { content:none; }
+#app .water-dashboard .fixed-events .tl>li>.timeline-event-card {
+  display:block; padding:12px 14px; border:1px solid var(--dash-line);
+  border-radius:10px; background:var(--dash-surface); min-width:0;
+}
+#app .water-dashboard .fixed-events .tl .timeline-event-body { display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px; margin-top:7px; min-width:0; }
+#app .water-dashboard .fixed-events .tl .timeline-event-body strong { min-width:0; }
+#app .water-dashboard .fixed-events .tl .timeline-event-body small { flex-basis:100%; margin-top:1px; }
+#app .water-dashboard .fixed-events .tl .cat { padding:2px 7px; line-height:1.5; }
+@keyframes dashboard-timeline-node {
+  0%,100% { box-shadow:0 0 0 0 color-mix(in srgb,var(--timeline-color) 24%,transparent); }
+  55% { box-shadow:0 0 0 5px color-mix(in srgb,var(--timeline-color) 4%,transparent); }
+}
+@media (prefers-reduced-motion:reduce) {
+  #app .water-dashboard .fixed-events .tl>li::before { animation:none; }
+}

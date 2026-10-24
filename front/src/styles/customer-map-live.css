@@ -1,0 +1,428 @@
+/* Keep the original customer map/list/detail design with API-backed content. */
+.legacy-live-map .mapw .mtop {
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+.legacy-live-map .mapw .mtop>.kakao-map-controls {
+  position: static;
+  inset: auto;
+  flex-shrink: 0;
+}
+.legacy-live-map .mtop>.traffic-map-toggles {
+  position: static;
+  max-width: 100%;
+  pointer-events: auto;
+  width: fit-content;
+  min-width: 230px;
+  box-sizing: border-box;
+  background: var(--surface,#fff);
+  color: var(--foreground,#243447);
+  border: 1px solid var(--line,#c8d1dc);
+  border-radius: 12px;
+  box-shadow: 0 3px 12px #07121c22;
+  overflow: hidden;
+}
+.traffic-map-toggles .traffic-controls-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+.legacy-live-map .mtop>.traffic-map-toggles.traffic-controls-collapsed {
+  min-width: 0;
+  width: 128px;
+  border-radius: 10px;
+}
+.traffic-map-toggles.traffic-controls-collapsed .traffic-controls-heading {
+  min-height: 32px;
+  padding: 6px 10px;
+  gap: 10px;
+}
+.traffic-map-toggles .traffic-controls-body {
+  padding: 0 8px 8px;
+}
+:root[data-theme=dark] .legacy-live-map .mtop>.traffic-map-toggles {
+  background: #252f38;
+  border-color: #52616e;
+  color: #e3edf5;
+}
+.traffic-map-toggles .traffic-layer-switches {
+  flex-wrap: wrap;
+}
+.traffic-map-toggles .traffic-layer-switches button {
+  gap: 8px;
+  min-height: 40px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+}
+.traffic-map-toggles .traffic-toggle-track {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 30px;
+  width: 30px;
+  height: 18px;
+  padding: 2px;
+  border-radius: 10px;
+  background: #8795a2;
+  box-sizing: border-box;
+}
+.traffic-toggle-track::before {
+  content: '';
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform .15s ease;
+}
+.traffic-map-toggles button[aria-pressed=true] .traffic-toggle-track {
+  background: #2876b9;
+}
+.traffic-map-toggles button[aria-pressed=true] .traffic-toggle-track::before {
+  transform: translateX(12px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .traffic-toggle-track::before { transition: none; }
+}
+.legacy-live-map .mapw .map-left-tools {
+  position:absolute;
+  left:14px;
+  bottom:78px;
+  z-index:6;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:10px;
+  max-width:calc(100% - 76px);
+}
+.legacy-live-map:not(.mobile-app-map) .mapw .map-left-tools { bottom:46px; }
+.legacy-live-map .mapw .map-left-tools>.traffic-map-layers,
+.legacy-live-map .mapw .map-left-tools>.map-weather-widget {
+  position:static;
+  max-width:100%;
+}
+.legacy-live-map .map-left-tools .traffic-layer-switches { flex-wrap:wrap; }
+@media(max-width:500px) {
+  .legacy-live-map .mapw .map-left-tools { left:8px; bottom:76px; }
+}
+.legacy-live-map .customer-map-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 360px;
+}
+.legacy-live-map .mapw .mtop {
+  z-index: 3;
+}
+.legacy-live-map:not(.mobile-app-map) .map-weather-widget {
+  bottom: 46px;
+}
+.legacy-live-map .mapw .pill {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.legacy-live-map .mapw .pill span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+.legacy-live-map .mapw .pill i {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+.legacy-live-map .mapw .kakao-map-controls {
+  top: auto;
+  bottom: 20px;
+  right: 14px;
+  z-index: 4;
+}
+.legacy-live-map .ph select {
+  width: 100%;
+  min-height: 38px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+}
+.legacy-live-map .ph .refresh-facilities {
+  align-self: end;
+  font-size: 12px;
+  min-height: 32px;
+  padding: 6px 10px;
+}
+.legacy-live-map .detail-badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.legacy-live-map .detail-extended {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+.legacy-live-map .detail-extended .weather-value {
+  font-size: 14px;
+}
+.legacy-live-map .detail-extended .trend-title {
+  font-size: 13px;
+  margin: 0 0 8px;
+}
+.legacy-live-map .risk-history-chart {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.legacy-live-map .facility-message {
+  margin: 0;
+  padding: 16px;
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.legacy-live-map .facility-message[role=alert] {
+  color: #b42318;
+}
+.legacy-live-map .map-error-note {
+  position: absolute;
+  left: 12px;
+  right: 64px;
+  top: 62px;
+  z-index: 3;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 12px;
+}
+.legacy-live-map .cluster-list-heading {
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+}
+.legacy-live-map .app-guidance {
+  margin-top: 4px;
+  line-height: 1.7;
+}
+.legacy-live-map .app-guidance a {
+  white-space: nowrap;
+}
+.legacy-live-map .alertbar {
+  z-index: 3;
+  bottom: 72px;
+  font-size: 13px;
+}
+.legacy-live-map .lst .it>span:last-child {
+  min-width: 0;
+}
+.legacy-live-map .lst .it small {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.legacy-live-map .customer-list-pagination {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 8px;
+  border-top: 1px solid var(--line);
+  margin-top: auto;
+  font-size: 13px;
+  background: var(--surface);
+}
+.legacy-live-map .list-page-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.legacy-live-map .list-page-buttons button {
+  min-width: 30px;
+  min-height: 34px;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: inherit;
+  font-size: 12px;
+}
+.legacy-live-map .list-page-buttons button[aria-current=page] {
+  background: #225f9b;
+  border-color: #225f9b;
+  color: #fff;
+  font-weight: 700;
+}
+.legacy-live-map .list-page-buttons button:disabled {
+  opacity: .4;
+  cursor: default;
+}
+.legacy-live-map .customer-list-pagination small {
+  color: var(--ink-sub,#64748b);
+  font-size: 12px;
+}
+.service-mobile .legacy-live-map .app.map-swap-layout {
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  gap: 12px;
+  height: auto;
+  min-height: 0;
+}
+.service-mobile .legacy-live-map .app.map-swap-layout>.mapw {
+  width: 100%;
+  min-height: 380px;
+  height: 380px;
+}
+.service-mobile .legacy-live-map .app.map-swap-layout>aside {
+  width: 100%;
+  height: auto;
+  max-height: none;
+}
+@media (max-width:600px) {
+  .legacy-live-map .mapw .pill {
+    gap: 6px;
+    font-size: 11px;
+  }
+  .legacy-live-map .mapw .mtop {
+    left: 8px;
+    right: 8px;
+    top: 8px;
+  }
+  .legacy-live-map .map-weather-widget {
+    max-width: calc(100% - 76px);
+  }
+}
+
+.legacy-live-map .mapw .mtop .pill {
+  flex: 0 1 auto;
+  width: max-content;
+  max-width: 100%;
+  align-self: flex-start;
+}
+
+/* The customer map uses its existing pill legend, not the embedded admin legend. */
+.legacy-live-map.mobile-app-map .mapw .mtop {
+  left: 12px;
+  right: 12px;
+}
+.legacy-live-map.mobile-app-map .mapw .mtop .pill {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) minmax(0, 1.35fr);
+  width: 100%;
+  max-width: 100%;
+  gap: 2px;
+  padding: 6px 8px;
+  font-size: clamp(10px, 2.7vw, 12px);
+}
+.legacy-live-map.mobile-app-map .mapw .mtop .pill>span {
+  min-width: 0;
+  justify-content: center;
+  white-space: nowrap;
+  gap: 5px;
+}
+.legacy-live-map.mobile-app-map .mtop .pill .legend-filter-button {
+  width: 100%;
+  justify-content: center;
+  gap: 5px;
+  padding: 4px 2px;
+  font-size: inherit;
+  white-space: nowrap;
+}
+.legacy-live-map.mobile-app-map .mtop .pill i {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+}
+.legacy-live-map .mapw>.map-only-legend {
+  display: none;
+}
+.legacy-live-map .mapw .mtop>.traffic-map-toggles {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  width: max-content;
+}
+.legacy-live-map .mtop>.traffic-map-toggles.traffic-controls-collapsed {
+  width: fit-content;
+}
+.legacy-live-map .traffic-map-toggles .traffic-controls-heading {
+  flex: 0 0 auto;
+  width: auto;
+  min-height: 34px;
+  padding: 6px 9px;
+  gap: 8px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.legacy-live-map .traffic-map-toggles .traffic-controls-body {
+  min-width: 0;
+  padding: 4px 5px 4px 0;
+}
+.legacy-live-map .traffic-map-toggles .traffic-layer-switches {
+  flex-wrap: nowrap;
+  gap: 4px;
+}
+.legacy-live-map .traffic-map-toggles .traffic-layer-switches button {
+  min-height: 30px;
+  padding: 4px 6px;
+  gap: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.legacy-live-map .traffic-map-toggles .traffic-toggle-track {
+  display: none;
+}
+.legacy-live-map .customer-map-control-dock {
+  position: absolute;
+  right: 12px;
+  bottom: 16px;
+  z-index: 13;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  max-width: calc(100% - 24px);
+}
+.legacy-live-map.mobile-app-map .customer-map-control-dock {
+  bottom: min(calc(var(--map-sheet-height,68px) + 12px),calc(100% - 54px));
+}
+.legacy-live-map .mapw .customer-map-control-dock>.kakao-map-controls,
+.legacy-live-map.mobile-app-map .mapw .customer-map-control-dock>.kakao-map-controls {
+  position: static;
+  inset: auto;
+  flex-direction: row;
+}
+.legacy-live-map .customer-map-control-dock .map-control-toggle {
+  min-height: 40px;
+  padding: 6px 9px;
+  border: 1px solid var(--line,#c8d1dc);
+  border-radius: 9px;
+  background: var(--surface,#fff);
+  color: var(--foreground,#243447);
+  font: inherit;
+  font-size: 11px;
+  white-space: nowrap;
+  cursor: pointer;
+}

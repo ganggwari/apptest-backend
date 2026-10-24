@@ -93,9 +93,9 @@ public final class StreamPayloads {
             NotificationUnreadResponse unread) {
     }
 
-    /** [notification-new] (관리자) 새 관리자 알림. 읽음은 관리자별이라 개수는 REST(unread-count)로 다시 조회한다 */
+    /** [notification-new] (관리자) 새 관리자 알림. 읽음은 관리자별이라 개수는 REST(unread-count)로 다시 조회한다. urgent=true 면 긴급 팝업을 띄운다 */
     public record ManagerNotificationNew(Long id, ManagerNotificationCategory category, Long regionId, String title,
-            String body, String refType, Long refId,
+            String body, String refType, Long refId, boolean urgent,
             @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = DT) LocalDateTime createdAt) {
     }
 }

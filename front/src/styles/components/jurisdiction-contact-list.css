@@ -1,0 +1,8 @@
+.jurisdiction-phone-list { list-style: none; margin: 16px 0; padding: 0; border: 1px solid var(--line, #cbd5e1); border-radius: 10px; background: var(--surface, #fff); overflow: hidden; }
+.jurisdiction-phone-list li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 16px; }
+.jurisdiction-phone-list li + li { border-top: 1px solid var(--line, #cbd5e1); }
+.jurisdiction-phone-list strong { display: block; font-size: 14px; font-weight: 600; }
+.jurisdiction-phone-list small { display: block; margin-top: 6px; color: var(--ink-sub, #64748b); font-size: 12px; }
+.jurisdiction-phone-list a { color: var(--primary, #225f9b); font-size: 14px; padding: 8px 0; white-space: nowrap; }
+.contact-unregistered { color: var(--ink-sub, #64748b); font-size: 13px; }
+.contact-placeholder { font-size: 14px; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
