@@ -52,11 +52,12 @@ public class NoticeController {
     @GetMapping
     public ApiResponse<PageResponse<NoticeListItem>> list(
             @RequestParam(name = "keyword", required = false) String keyword,
+            @RequestParam(name = "authorName", required = false) String authorName,
             @RequestParam(name = "category", required = false) NoticeCategory category,
             @RequestParam(name = "important", required = false) Boolean important,
             @RequestParam(name = "page", defaultValue = "1") int page,
             @RequestParam(name = "size", defaultValue = "20") int size) {
-        return ApiResponse.ok(noticeService.getNoticeList(keyword, category, important, page, size));
+        return ApiResponse.ok(noticeService.getNoticeList(keyword, authorName, category, important, page, size));
     }
 
     // 공지사항 상세 (로그인 불필요). 같은 브라우저가 24시간 안에 다시 열면 조회수는 올리지 않는다(쿠키)

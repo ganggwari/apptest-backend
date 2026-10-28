@@ -33,5 +33,5 @@ public interface PmQueryService {
                                         PageQuery page);
 
     PageResponse<PmActionItem> getActions(LoginUser loginUser, ScopeQuery scope, PmEquipmentType type, Long equipId,
-                                          PeriodQuery period, PageQuery page);
+                                          String managerName, PeriodQuery period, PageQuery page);
 }

@@ -77,7 +77,7 @@ public class PmReportServiceImpl implements PmReportService {
 
     private static final String ACTION_SELECT = """
             SELECT a.id AS action_id, ev.id AS event_id, e.id AS equip_id, CAST(e.type AS text) AS type, e.name AS name,
-                   u.id AS underpass_id, u.name AS underpass_name, u.region_id AS region_id, a.content AS content,
+                   u.id AS underpass_id, u.name AS underpass_name, u.region_id AS region_id, a.content AS content, CAST(a.kind AS text) AS kind,
                    a.manager_id AS manager_id, emp.name AS manager_name, a.created_at AS created_at,
                    CAST(ev.level AS text) AS event_level, ev.score AS score_before,
                    (SELECT s.score FROM pm_score s WHERE s.equip_id = e.id AND s.predicted_at > a.created_at
@@ -94,14 +94,16 @@ public class PmReportServiceImpl implements PmReportService {
     @PersistenceContext
     private EntityManager em;
 
+    private final PmReportSupplementService supplements;
     private final ScopeResolver scopeResolver;
     private final DbClock dbClock;
     private final int multiplier;
     private final int minSeconds;
 
-    public PmReportServiceImpl(ScopeResolver scopeResolver, DbClock dbClock,
+    public PmReportServiceImpl(ScopeResolver scopeResolver, DbClock dbClock, PmReportSupplementService supplements,
                                @Value("${puf.pm.stale.multiplier:3}") int multiplier,
                                @Value("${puf.pm.stale.min-seconds:60}") int minSeconds) {
+        this.supplements = supplements;
         this.scopeResolver = scopeResolver;
         this.dbClock = dbClock;
         this.multiplier = Math.max(1, multiplier);
@@ -169,7 +171,8 @@ public class PmReportServiceImpl implements PmReportService {
 
         return new PmPeriodSummary(from, to, counts(atEnd, to), counts(atStart, from), byType(atEnd, to),
                 newCount, newEvents, actionCount, actions, open.size(), open,
-                stale.stream().limit(STALE_LIMIT).toList(), never, recommended);
+                stale.stream().limit(STALE_LIMIT).toList(), never, recommended,
+                supplements.sinkhole(regionIds, underpassId, from, to), supplements.control(regionIds, underpassId, from, to));
     }
 
     // ------------------------------------------------------------------
@@ -212,7 +215,8 @@ public class PmReportServiceImpl implements PmReportService {
     }
 
     private List<PmReportEquipment> snapshot(List<Long> regionIds, Long underpassId, LocalDateTime asOf) {
-        return new NativeSql(SNAPSHOT_SQL)
+        // 노면은 센서 위험도 통계 대상이 아니다. 탐지 이벤트와 조치 이력은 보고서에 포함된다.
+        return new NativeSql(SNAPSHOT_SQL + " AND e.type::text <> 'ROAD'")
                 .andIf(regionIds != null, " AND u.region_id IN (:regionIds)", "regionIds", regionIds)
                 .andIf(underpassId != null, " AND u.id = :underpassId", "underpassId", underpassId)
                 .append(" ORDER BY e.id").param("asOf", asOf).list(em, PmReportEquipment.class);

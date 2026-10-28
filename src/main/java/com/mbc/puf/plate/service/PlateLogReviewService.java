@@ -18,6 +18,7 @@ public interface PlateLogReviewService {
     // 번호판 인식 기록 목록. 판별대기 목록 = reviewStatus=PENDING (마감 임박한 것부터)
     PageResponse<PlateLogListItem> getPlateLogs(LoginUser loginUser, ScopeQuery scope, ReviewStatus reviewStatus,
                                                 RecognitionStatus recognitionStatus, VehicleQuery vehicle,
+                                                String reviewerName, String customerName,
                                                 PeriodQuery period, PageQuery page);
 
     // 수동 판별: correctedNum으로 재매칭 후 CONFIRMED로 확정

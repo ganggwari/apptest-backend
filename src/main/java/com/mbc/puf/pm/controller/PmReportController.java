@@ -65,7 +65,7 @@ public class PmReportController {
             @RequestParam(name = "date", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         PmDailyReport report = pmReportService.getDailyReport(loginUser, scope, date);
         byte[] bytes = pdfGenerator.generate(report);
-        String filename = "예지보전_데일리리포트_" + report.date() + ".pdf";
+        String filename = "데일리리포트_" + report.date() + ".pdf";
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
         headers.set(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''"

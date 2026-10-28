@@ -1,283 +1,75 @@
 package com.mbc.puf.common.pdf;
 
 import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.math.BigDecimal;
+import java.util.*;
 import java.util.List;
-
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
-
-import com.itextpdf.io.font.PdfEncodings;
-import com.itextpdf.io.font.constants.StandardFonts;
-import com.itextpdf.kernel.colors.ColorConstants;
-import com.itextpdf.kernel.colors.DeviceRgb;
+import com.itextpdf.kernel.pdf.*;
 import com.itextpdf.kernel.font.PdfFont;
-import com.itextpdf.kernel.font.PdfFontFactory;
-import com.itextpdf.kernel.font.PdfFontFactory.EmbeddingStrategy;
-import com.itextpdf.kernel.pdf.PdfDocument;
-import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.layout.Document;
-import com.itextpdf.layout.borders.SolidBorder;
-import com.itextpdf.layout.element.Cell;
-import com.itextpdf.layout.element.Paragraph;
-import com.itextpdf.layout.element.Table;
-import com.itextpdf.layout.properties.HorizontalAlignment;
-import com.itextpdf.layout.properties.TextAlignment;
-import com.itextpdf.layout.properties.UnitValue;
-import com.mbc.puf.common.enums.PmEquipmentType;
+import com.itextpdf.layout.element.*;
+import com.itextpdf.layout.properties.AreaBreakType;
+import com.mbc.puf.pm.dto.*;
 import com.mbc.puf.common.enums.PmEventStatus;
-import com.mbc.puf.common.enums.PmLevel;
-import com.mbc.puf.pm.dto.PmActionItem;
-import com.mbc.puf.pm.dto.PmDailyReport;
-import com.mbc.puf.pm.dto.PmEventItem;
-import com.mbc.puf.pm.dto.PmLevelCounts;
-import com.mbc.puf.pm.dto.PmPeriodSummary;
-import com.mbc.puf.pm.dto.PmReportEquipment;
-import com.mbc.puf.pm.dto.PmTypeCounts;
+import static com.mbc.puf.common.pdf.PdfVisuals.*;
 
-/**
- * 예지보전 데일리 리포트 PDF (관리자가 "PDF 뽑기" 버튼을 누르면 그 순간 만든다).
- * 폰트·색은 TransferPdfGenerator 와 같은 방식 (classpath 의 한글 폰트를 내장).
- */
 @Component
 public class PmDailyReportPdfGenerator {
-
-    private static final DateTimeFormatter DT_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
-    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy년 MM월 dd일");
-    private static final DeviceRgb HEADER_BG = new DeviceRgb(0x1A, 0x56, 0xDB);
-    private static final DeviceRgb ROW_ALT_BG = new DeviceRgb(0xF3, 0xF4, 0xF6);
-    private static final DeviceRgb DARK = new DeviceRgb(0x11, 0x18, 0x27);
-    private static final DeviceRgb MUTED = new DeviceRgb(0x6B, 0x72, 0x80);
-    private static final float MARGIN = 40f;
-    private static final String FONT_RESOURCE_PATH = "fonts/NotoSansKR.ttf";
-
-    public byte[] generate(PmDailyReport report) {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        try (PdfDocument pdf = new PdfDocument(new PdfWriter(baos));
-             Document doc = new Document(pdf)) {
-            doc.setMargins(MARGIN, MARGIN, MARGIN, MARGIN);
-            PdfFont font = loadFont();
-            PmPeriodSummary s = report.summary();
-
-            doc.add(new Paragraph("예지보전 데일리 리포트").setFont(font).setFontSize(18)
-                    .setTextAlignment(TextAlignment.CENTER).setFontColor(DARK).setMarginBottom(4f));
-            doc.add(new Paragraph(report.date().format(DATE_FMT) + "  (집계 " + fmt(s.from()) + " ~ " + fmt(s.to())
-                    + ")  ·  생성 " + fmt(report.generatedAt()))
-                    .setFont(font).setFontSize(9).setTextAlignment(TextAlignment.CENTER).setFontColor(MUTED)
-                    .setMarginBottom(14f));
-
-            // 1. 단계별 설비 수
-            section(doc, font, "1. 설비 단계 현황 (전일 시작 시점 대비)");
-            PmLevelCounts now = s.levelCounts();
-            PmLevelCounts prev = s.previousLevelCounts();
-            Table t1 = table(1, 1, 1, 1);
-            for (String h : new String[]{"안전", "주의", "위험", "데이터 없음"}) {
-                t1.addHeaderCell(header(h, font));
-            }
-            t1.addCell(cell(diff(now.safe(), prev == null ? null : prev.safe()), font, false, TextAlignment.CENTER));
-            t1.addCell(cell(diff(now.caution(), prev == null ? null : prev.caution()), font, false, TextAlignment.CENTER));
-            t1.addCell(cell(diff(now.danger(), prev == null ? null : prev.danger()), font, false, TextAlignment.CENTER));
-            t1.addCell(cell(diff(now.noData(), prev == null ? null : prev.noData()), font, false, TextAlignment.CENTER));
-            doc.add(t1);
-
-            // 2. 설비 종류별
-            section(doc, font, "2. 설비 종류별 현황");
-            Table t2 = table(2, 1, 1, 1, 1, 1);
-            for (String h : new String[]{"종류", "전체", "안전", "주의", "위험", "데이터 없음"}) {
-                t2.addHeaderCell(header(h, font));
-            }
-            int i = 0;
-            for (PmTypeCounts c : nz(s.byType())) {
-                boolean alt = i++ % 2 == 1;
-                t2.addCell(cell(typeName(c.type()), font, alt, TextAlignment.LEFT));
-                t2.addCell(cell(String.valueOf(c.total()), font, alt, TextAlignment.CENTER));
-                t2.addCell(cell(String.valueOf(c.safe()), font, alt, TextAlignment.CENTER));
-                t2.addCell(cell(String.valueOf(c.caution()), font, alt, TextAlignment.CENTER));
-                t2.addCell(cell(String.valueOf(c.danger()), font, alt, TextAlignment.CENTER));
-                t2.addCell(cell(String.valueOf(c.noData()), font, alt, TextAlignment.CENTER));
-            }
-            doc.add(t2);
-
-            // 3. 신규 점검 대기
-            section(doc, font, "3. 오늘 새로 생긴 점검 대기 (" + s.newEventCount() + "건)");
-            doc.add(eventTable(font, s.newEvents(), "신규 점검 대기가 없습니다."));
-
-            // 4. 점검 기록
-            section(doc, font, "4. 남긴 점검 기록 (" + s.actionCount() + "건)");
-            Table t4 = table(2, 3, 2, 4, 1, 1);
-            for (String h : new String[]{"시각", "설비 / 지하차도", "등록자", "조치 내용", "점검 전", "점검 후"}) {
-                t4.addHeaderCell(header(h, font));
-            }
-            if (nz(s.actions()).isEmpty()) {
-                t4.addCell(empty("남긴 점검 기록이 없습니다.", font, 6));
-            }
-            i = 0;
-            for (PmActionItem a : nz(s.actions())) {
-                boolean alt = i++ % 2 == 1;
-                t4.addCell(cell(fmt(a.getCreatedAt()), font, alt, TextAlignment.LEFT));
-                t4.addCell(cell(equipLabel(a.getName(), a.getType(), a.getEquipId()) + "\n" + dash(a.getUnderpassName()), font, alt, TextAlignment.LEFT));
-                t4.addCell(cell(dash(a.getManagerName()), font, alt, TextAlignment.LEFT));
-                t4.addCell(cell(dash(a.getContent()), font, alt, TextAlignment.LEFT));
-                t4.addCell(cell(num(a.getScoreBefore()), font, alt, TextAlignment.CENTER));
-                t4.addCell(cell(num(a.getScoreAfter()), font, alt, TextAlignment.CENTER));
-            }
-            doc.add(t4);
-
-            // 5. 이월(처리 중)
-            section(doc, font, "5. 아직 처리 중인 점검 (이월 " + s.openEventCount() + "건)");
-            doc.add(eventTable(font, s.openEvents(), "처리 중인 점검이 없습니다."));
-
-            // 6. 데이터 미수신
-            section(doc, font, "6. 데이터 미수신 설비 (" + nz(s.stale()).size() + "건"
-                    + (s.neverReceived() > 0 ? ", 한 번도 못 받은 설비 " + s.neverReceived() + "대 별도" : "") + ")");
-            doc.add(equipTable(font, s.stale(), "데이터가 끊긴 설비가 없습니다."));
-
-            // 7. 점검 권장
-            section(doc, font, "7. 점검 권장 설비 (주의 이상, 점수 높은 순)");
-            doc.add(equipTable(font, s.recommended(), "점검 권장 설비가 없습니다."));
-        } catch (Exception e) {
-            throw new RuntimeException("예지보전 데일리 리포트 PDF 생성 실패", e);
-        }
-        return baos.toByteArray();
+ private static final DateTimeFormatter DT=DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+ public byte[] generate(PmDailyReport report){
+  var out=new ByteArrayOutputStream();
+  try(var pdf=new PdfDocument(new PdfWriter(out));var doc=new Document(pdf)){
+   doc.setMargins(40,40,65,40);PdfFont f=font();footer(pdf,f);var s=report.summary();
+   title(doc,f,"데일리 리포트",report.date()+" · 집계 "+fmt(s.from())+" ~ "+fmt(s.to())+" · 생성 "+fmt(report.generatedAt()));
+    if(s.control()!=null){var control=s.control();section(doc,f,"01  지하차도 차단·해제 · 차단 "+control.blockCount()+"건 / 해제 "+control.releaseCount()+"건");
+     var data=new ArrayList<String[]>();for(var e:nz(control.events()))data.add(new String[]{fmt(e.createdAt()),dash(e.underpassName()),"BLOCK".equals(e.type())?"차단":"해제",e.automatic()?"자동":dash(e.operatorName()),dash(e.reason())+(e.reasonNote()==null?"":" · "+e.reasonNote())});
+     rows(doc,f,new float[]{2,2,1,1.5f,4},new String[]{"발생 시각","지하차도","구분","담당","사유"},data);limit(doc,f,control.blockCount()+control.releaseCount(),data.size());
+    }
+   if(s.control()==null) {section(doc,f,"01  지하차도 차단·해제");doc.add(p("통제 집계 데이터가 없습니다.",f,10));}
+   doc.add(new AreaBreak(AreaBreakType.NEXT_PAGE));
+   title(doc,f,"설비 현황 요약","설비 단계 분포 · 설비 종류별 현황 · 점검 요약");
+   doc.add(summary(pdf,f,s));
+   doc.add(new AreaBreak(AreaBreakType.NEXT_PAGE));
+   title(doc,f,"우선 점검 및 미수신 현황","점검 권장 설비 · 최근 수신 정보 · 데이터 미수신 현황");
+   section(doc,f,"05  우선 점검 대상");equipment(doc,f,s.recommended());
+   section(doc,f,"06  데이터 미수신 설비");equipment(doc,f,s.stale());
+   doc.add(p("최근 점수는 과거 수신값입니다. 현재 단계는 미수신으로 집계합니다.",f,9).setFontColor(MUTED));
+   doc.add(p("점수 수신 이력이 전혀 없는 설비: "+s.neverReceived()+"대 (위 목록과 별도)",f,10));
+   doc.add(new AreaBreak(AreaBreakType.NEXT_PAGE));
+   title(doc,f,"점검 이벤트 및 조치 기록","집계 기간 내 신규 점검 · 조치 이력 · 미완료 점검 현황");
+   section(doc,f,"07  오늘 새로 발생한 점검 대기 · "+s.newEventCount()+"건");events(doc,f,s.newEvents());
+   section(doc,f,"08  오늘의 조치 기록 · "+s.actionCount()+"건");
+   var actions=new ArrayList<String[]>();for(var a:nz(s.actions()))actions.add(new String[]{fmt(a.getCreatedAt()),label(a.getName(),a.getEquipId())+" / "+dash(a.getUnderpassName()),dash(a.getManagerName()),"["+dash(a.getKindLabel())+"] "+dash(a.getContent()),num(a.getScoreBefore())+" → "+num(a.getScoreAfter())});
+   rows(doc,f,new float[]{2,3,2,5,2},new String[]{"시각","설비 / 지하차도","등록자","조치 내용","점수 변화"},actions);
+   section(doc,f,"09  아직 처리 중인 점검 · "+s.openEventCount()+"건");events(doc,f,s.openEvents());
+   doc.add(p("신규 점검과 미처리 점검에는 같은 사건이 포함될 수 있습니다.",f,8).setFontColor(MUTED));
+   if(s.sinkhole()!=null){
+    doc.add(new AreaBreak(AreaBreakType.NEXT_PAGE));title(doc,f,"싱크홀 분석 및 조치 기록","영상 분석 결과 · 확인 및 조치 · 미처리 현황");
+    if(s.sinkhole()!=null){var road=s.sinkhole();section(doc,f,"10  노면 싱크홀 분석·탐지");
+     doc.add(p("분석 "+road.analysisCount()+"건 · 의심 탐지 "+road.detectedCount()+"건 · 신규 사건 "+road.newEventCount()+"건 · 미처리 "+road.openEventCount()+"건",f,10));
+     doc.add(p("신뢰도는 영상 탐지 확률이며 설비 고장 점수가 아닙니다. 판정·미처리 상태는 조회 시점 기준입니다.",f,8).setFontColor(MUTED));
+     var data=new ArrayList<String[]>();for(var r:nz(road.results()))data.add(roadRow(r));
+     rows(doc,f,new float[]{2,3,2,1,2},new String[]{"분석 시각","설비 / 지하차도","결과","신뢰도","확인·조치"},data);limit(doc,f,road.analysisCount(),data.size());
+     section(doc,f,"현재 미처리 싱크홀 · "+road.openEventCount()+"건");data.clear();for(var r:nz(road.openIncidents()))data.add(roadRow(r));
+     rows(doc,f,new float[]{2,3,2,1,2},new String[]{"분석 시각","설비 / 지하차도","결과","신뢰도","확인·조치"},data);limit(doc,f,road.openEventCount(),data.size());
     }
 
-    private Table eventTable(PdfFont font, List<PmEventItem> events, String emptyText) {
-        Table t = table(2, 3, 1, 1, 1, 2);
-        for (String h : new String[]{"발생 시각", "설비 / 지하차도", "단계", "발생 점수", "현재 점수", "상태"}) {
-            t.addHeaderCell(header(h, font));
-        }
-        if (nz(events).isEmpty()) {
-            t.addCell(empty(emptyText, font, 6));
-        }
-        int i = 0;
-        for (PmEventItem e : nz(events)) {
-            boolean alt = i++ % 2 == 1;
-            t.addCell(cell(fmt(e.getCreatedAt()), font, alt, TextAlignment.LEFT));
-            t.addCell(cell(equipLabel(e.getName(), e.getType(), e.getEquipId()) + "\n" + dash(e.getUnderpassName()), font, alt, TextAlignment.LEFT));
-            t.addCell(cell(levelName(e.getLevel()), font, alt, TextAlignment.CENTER));
-            t.addCell(cell(num(e.getScore()), font, alt, TextAlignment.CENTER));
-            t.addCell(cell(num(e.getCurrentScore()), font, alt, TextAlignment.CENTER));
-            t.addCell(cell(statusName(e.getStatus()), font, alt, TextAlignment.CENTER));
-        }
-        return t;
-    }
-
-    private Table equipTable(PdfFont font, List<PmReportEquipment> list, String emptyText) {
-        Table t = table(3, 3, 1, 1, 2, 2);
-        for (String h : new String[]{"설비", "지하차도", "단계", "점수", "마지막 수신", "점검 상태"}) {
-            t.addHeaderCell(header(h, font));
-        }
-        if (nz(list).isEmpty()) {
-            t.addCell(empty(emptyText, font, 6));
-        }
-        int i = 0;
-        for (PmReportEquipment q : nz(list)) {
-            boolean alt = i++ % 2 == 1;
-            t.addCell(cell(equipLabel(q.getName(), q.getType(), q.getEquipId()), font, alt, TextAlignment.LEFT));
-            t.addCell(cell(dash(q.getUnderpassName()), font, alt, TextAlignment.LEFT));
-            t.addCell(cell(levelName(q.getLevel()), font, alt, TextAlignment.CENTER));
-            t.addCell(cell(num(q.getScore()), font, alt, TextAlignment.CENTER));
-            t.addCell(cell(fmt(q.getLastReceivedAt()), font, alt, TextAlignment.LEFT));
-            t.addCell(cell(q.getOpenEventStatus() == null ? "-" : statusName(q.getOpenEventStatus()), font, alt, TextAlignment.CENTER));
-        }
-        return t;
-    }
-
-    // ---- 헬퍼 ----
-
-    private void section(Document doc, PdfFont font, String title) {
-        doc.add(new Paragraph(title).setFont(font).setFontSize(12).setFontColor(DARK)
-                .setMarginTop(14f).setMarginBottom(6f));
-    }
-
-    private Table table(float... widths) {
-        return new Table(UnitValue.createPercentArray(widths)).setWidth(UnitValue.createPercentValue(100))
-                .setHorizontalAlignment(HorizontalAlignment.CENTER);
-    }
-
-    private Cell header(String text, PdfFont font) {
-        return new Cell().add(new Paragraph(text).setFont(font).setFontSize(9).setFontColor(ColorConstants.WHITE)
-                        .setTextAlignment(TextAlignment.CENTER))
-                .setBackgroundColor(HEADER_BG).setBorder(new SolidBorder(ColorConstants.LIGHT_GRAY, 0.5f)).setPadding(5f);
-    }
-
-    private Cell cell(String text, PdfFont font, boolean alt, TextAlignment align) {
-        return new Cell().add(new Paragraph(text == null ? "-" : text).setFont(font).setFontSize(9).setTextAlignment(align))
-                .setBackgroundColor(alt ? ROW_ALT_BG : ColorConstants.WHITE)
-                .setBorder(new SolidBorder(ColorConstants.LIGHT_GRAY, 0.5f)).setPadding(5f);
-    }
-
-    private Cell empty(String text, PdfFont font, int colspan) {
-        return new Cell(1, colspan).add(new Paragraph(text).setFont(font).setFontSize(9)
-                        .setTextAlignment(TextAlignment.CENTER).setFontColor(MUTED))
-                .setBorder(new SolidBorder(ColorConstants.LIGHT_GRAY, 0.5f)).setPadding(8f);
-    }
-
-    private PdfFont loadFont() throws Exception {
-        try (InputStream is = new ClassPathResource(FONT_RESOURCE_PATH).getInputStream()) {
-            return PdfFontFactory.createFont(is.readAllBytes(), PdfEncodings.IDENTITY_H, EmbeddingStrategy.PREFER_EMBEDDED);
-        } catch (Exception ignored) {
-            return PdfFontFactory.createFont(StandardFonts.HELVETICA);
-        }
-    }
-
-    private static <T> List<T> nz(List<T> l) {
-        return l == null ? List.of() : l;
-    }
-
-    private String fmt(LocalDateTime t) {
-        return t == null ? "-" : t.format(DT_FMT);
-    }
-
-    private String dash(String s) {
-        return s == null || s.isBlank() ? "-" : s;
-    }
-
-    private String num(BigDecimal n) {
-        return n == null ? "-" : n.stripTrailingZeros().toPlainString();
-    }
-
-    private String diff(int now, Integer before) {
-        if (before == null) {
-            return String.valueOf(now);
-        }
-        int d = now - before;
-        return now + (d == 0 ? "  (변동 없음)" : d > 0 ? "  (+" + d + ")" : "  (" + d + ")");
-    }
-
-    /** 설비 이름(예: W-1-6). 이름이 없으면 종류 + 번호로 */
-    private String equipLabel(String name, PmEquipmentType t, Long id) {
-        return (name != null && !name.isBlank()) ? name : typeName(t) + " #" + id;
-    }
-
-    private String typeName(PmEquipmentType t) {
-        if (t == null) {
-            return "-";
-        }
-        return switch (t) {
-            case CCTV -> "CCTV";
-            case DISPLAY -> "전광판";
-            case PUMP -> "배수펌프";
-            case WATER_LEVEL -> "수위계";
-        };
-    }
-
-    private String levelName(PmLevel l) {
-        return l == null ? "-" : l.getDbValue();
-    }
-
-    private String statusName(PmEventStatus s) {
-        if (s == null) {
-            return "-";
-        }
-        return switch (s) {
-            case CHECK_NEEDED -> "점검 필요";
-            case IN_PROGRESS -> "점검 중";
-            case RESOLVED -> "처리 완료";
-            case ETC -> "기타";
-        };
-    }
+   }
+  }catch(Exception e){throw new RuntimeException("데일리 리포트 PDF 생성 실패",e);}return out.toByteArray();
+ }
+ private void equipment(Document d,PdfFont f,List<PmReportEquipment> list){var data=new ArrayList<String[]>();for(var e:nz(list))data.add(new String[]{label(e.getName(),e.getEquipId()),dash(e.getUnderpassName()),e.getLevel()==null?"-":e.getLevel().getDbValue(),num(e.getScore()),fmt(e.getLastReceivedAt()),status(e.getOpenEventStatus())});rows(d,f,new float[]{2,3,1,1,2,2},new String[]{"설비","지하차도","단계","점수","최근 수신","점검 상태"},data);}
+ private void events(Document d,PdfFont f,List<PmEventItem> list){var data=new ArrayList<String[]>();for(var e:nz(list))data.add(new String[]{fmt(e.getCreatedAt()),label(e.getName(),e.getEquipId())+" / "+dash(e.getUnderpassName()),e.getTriggerType()==null?"-":e.getTriggerType().getDbValue(),num(e.getScore()),num(e.getCurrentScore()),status(e.getStatus())});rows(d,f,new float[]{2,3,2,1,1,2},new String[]{"발생 시각","설비 / 지하차도","발생 이유","발생 점수","현재 점수","상태"},data);}
+ private void rows(Document d,PdfFont f,float[] widths,String[] headers,List<String[]> data){Table t=table(widths);for(String h:headers)t.addHeaderCell(cell(h,f,true));for(String[]row:data)for(String v:row)t.addCell(cell(v,f,false));if(data.isEmpty())t.addCell(new Cell(1,headers.length).add(p("해당 내역이 없습니다.",f,9)).setPadding(12));d.add(t);}
+ private String[] roadRow(PmSinkholeSummary.Item r){return new String[]{fmt(r.analyzedAt()),dash(r.name())+" / "+dash(r.underpassName()),r.detected()?"싱크홀 의심":"이상 미탐지",r.confidence()==null?"-":r.confidence().multiply(new BigDecimal("100")).stripTrailingZeros().toPlainString()+"%",roadStatus(r)};}
+ private String roadStatus(PmSinkholeSummary.Item r){if(!r.detected())return "이상 미탐지";return switch(r.reviewStatus()){case "FALSE_POSITIVE"->"오탐 확인";case "RESOLVED"->"조치 완료";case "CONFIRMED"->"싱크홀 확인";default->"확인 필요";};}
+ private void limit(Document d,PdfFont f,long total,int shown){if(total>shown)d.add(p("최근 "+shown+"건 표시 / 전체 "+total+"건",f,8).setFontColor(MUTED));}
+ private String status(PmEventStatus s){return s==null?"-":switch(s){case CHECK_NEEDED->"점검 필요";case IN_PROGRESS->"점검 중";case RESOLVED->"조치 완료";case ETC->"기타 종료";};}
+ private static <T> List<T> nz(List<T> l){return l==null?List.of():l;}
+ private String label(String n,Long id){return n==null||n.isBlank()?"설비 #"+id:n;}
+ private String dash(String s){return s==null||s.isBlank()?"-":s;}
+ private String num(BigDecimal n){return n==null?"-":n.stripTrailingZeros().toPlainString();}
+ private String fmt(LocalDateTime t){return t==null?"-":t.format(DT);}
 }

@@ -1,3 +1,4 @@
+
 package com.mbc.puf.common.exception;
 
 import java.io.IOException;
@@ -69,34 +70,50 @@ public class GlobalExceptionHandler {
                     .collect(Collectors.joining("."));
         }
         // 운영 중 원인을 바로 찾을 수 있게 어떤 요청이 왜 실패했는지 로그로 남긴다
-        log.warn("요청 본문을 읽지 못했습니다: {} {} (field={}, cause={})", request.getMethod(), request.getRequestURI(),
-                field, cause == null ? e.getMessage() : cause.getClass().getSimpleName());
+        log.warn("요청 본문을 읽지 못했습니다: {} {} (field={}, cause={})",
+                request.getMethod(),
+                request.getRequestURI(),
+                field,
+                cause == null ? e.getMessage() : cause.getClass().getSimpleName());
+
         String message = field == null ? "요청 본문 형식이 올바르지 않습니다."
                 : "요청 본문 형식이 올바르지 않습니다. (" + field + ")";
         return ResponseEntity.badRequest().body(ApiResponse.error(message));
     }
 
-    // DB 제약 위반(길이·범위 초과, 중복, 참조 오류 등). 500 대신 원인을 알 수 있는 상태코드로 응답하고 원인은 로그에 남긴다.
+    // DB 제약 위반(길이·범위 초과, 중복, 참조 오류 등).
+    // 500 대신 원인을 알 수 있는 상태코드로 응답하고 원인은 로그에 남긴다.
     // 입력 검증(@Valid)에서 못 걸러낸 값이 여기로 온다
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiResponse<Void>> handleDataIntegrity(DataIntegrityViolationException e,
                                                                  HttpServletRequest request) {
         Throwable root = e.getMostSpecificCause();
         String detail = root.getMessage() == null ? "" : root.getMessage();
-        log.warn("DB 제약 위반: {} {} - {}", request.getMethod(), request.getRequestURI(), detail);
+
+        log.warn("DB 제약 위반: {} {} - {}",
+                request.getMethod(),
+                request.getRequestURI(),
+                detail);
+
         if (detail.contains("numeric field overflow")) {
-            return ResponseEntity.badRequest().body(ApiResponse.error("숫자 값이 허용 범위를 넘었습니다. 입력값을 확인해주세요."));
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("숫자 값이 허용 범위를 넘었습니다. 입력값을 확인해주세요."));
         }
         if (detail.contains("value too long")) {
-            return ResponseEntity.badRequest().body(ApiResponse.error("입력한 글자 수가 허용 범위를 넘었습니다. 입력값을 확인해주세요."));
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("입력한 글자 수가 허용 범위를 넘었습니다. 입력값을 확인해주세요."));
         }
         if (detail.contains("duplicate key")) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.error("이미 등록된 값입니다."));
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(ApiResponse.error("이미 등록된 값입니다."));
         }
         if (detail.contains("foreign key")) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.error("연결된 데이터가 있어 처리할 수 없습니다."));
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(ApiResponse.error("연결된 데이터가 있어 처리할 수 없습니다."));
         }
-        return ResponseEntity.badRequest().body(ApiResponse.error("저장할 수 없는 값입니다. 입력값을 확인해주세요."));
+
+        return ResponseEntity.badRequest()
+                .body(ApiResponse.error("저장할 수 없는 값입니다. 입력값을 확인해주세요."));
     }
 
     // 경로/쿼리 파라미터 타입 오류 (예: /api/regions/abc)
@@ -106,24 +123,31 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error("요청 파라미터 형식이 올바르지 않습니다. (" + e.getName() + ")"));
     }
 
-    // @PreAuthorize 등 메서드 보안이 던진 예외(Spring Security 6부터는 하위 클래스인
-    // AuthorizationDeniedException으로 던져지지만 그대로 여기서 잡힌다). 이 처리기가 없으면 아래의
-    // 마지막 Exception 처리기가 500 으로 바꿔버린다. 로그인하지 않은 상태면 401, 로그인은 했지만
-    // 권한이 부족하면 403. 어떤 요청/계정이 막혔는지 다음에 바로 추적할 수 있도록 WARN으로 남긴다
-    // (응답 자체는 정상적으로 나가는 "의도된 차단"이라 이 로그가 떠도 에러는 아니다)
+    // @PreAuthorize 등 메서드 보안이 던진 예외.
+    // 로그인하지 않은 상태면 401, 로그인은 했지만 권한이 부족하면 403.
     @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<ApiResponse<Void>> handleAccessDenied(AccessDeniedException e, HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<Void>> handleAccessDenied(AccessDeniedException e,
+                                                                HttpServletRequest request) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        boolean anonymous = authentication == null || authentication instanceof AnonymousAuthenticationToken;
+        boolean anonymous = authentication == null
+                || authentication instanceof AnonymousAuthenticationToken;
         String who = anonymous ? "anonymous" : authentication.getName();
 
         if (anonymous) {
-            log.warn("인증되지 않은 접근 차단: {} {} (principal={})", request.getMethod(), request.getRequestURI(), who);
+            log.warn("인증되지 않은 접근 차단: {} {} (principal={})",
+                    request.getMethod(),
+                    request.getRequestURI(),
+                    who);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(ApiResponse.error("인증이 필요합니다. 다시 로그인해주세요."));
         }
-        log.warn("권한 부족으로 접근 차단: {} {} (principal={})", request.getMethod(), request.getRequestURI(), who);
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.error("접근 권한이 없습니다."));
+
+        log.warn("권한 부족으로 접근 차단: {} {} (principal={})",
+                request.getMethod(),
+                request.getRequestURI(),
+                who);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ApiResponse.error("접근 권한이 없습니다."));
     }
 
     @ExceptionHandler(AuthenticationException.class)
@@ -132,17 +156,30 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error("인증이 필요합니다. 다시 로그인해주세요."));
     }
 
-    // 클라이언트가 응답을 받기 전에 연결을 끊은 경우(새로고침/탭 닫기, 느린 네트워크에서 중도 이탈 등).
-    // 이미 끊긴 연결이라 응답을 쓰려고 해도 또 예외가 날 뿐이라 응답은 시도하지 않고 로그만 남긴다.
-    // 운영 중 흔히 발생하는 정상적인 상황이라 WARN 수준으로 조용히 처리(스택트레이스까지는 안 남김)
-    @ExceptionHandler({ ClientAbortException.class, AsyncRequestNotUsableException.class })
-    public void handleClientAbort(Exception e) {
-        log.warn("클라이언트가 응답을 받기 전에 연결을 끊었습니다: {}", e.getMessage());
+    // 클라이언트가 연결을 끊은 경우.
+    // HTTP 메서드와 요청 URL을 함께 기록하여
+    // SSE 연결 종료인지 일반 REST API 연결 종료인지 구분한다.
+    //
+    // 이미 사용할 수 없는 응답이므로 추가 응답은 작성하지 않는다.
+    @ExceptionHandler({
+            ClientAbortException.class,
+            AsyncRequestNotUsableException.class
+    })
+    public void handleClientAbort(Exception e, HttpServletRequest request) {
+        log.warn(
+                "클라이언트 연결 종료: {} {} (exception={}, message={})",
+                request.getMethod(),
+                request.getRequestURI(),
+                e.getClass().getSimpleName(),
+                e.getMessage()
+        );
     }
 
-    // 그 밖의 IO 오류(파일 처리 등) / 응답 직렬화 실패. ClientAbortException과 달리 클라이언트 탓이
-    // 아니라 서버 쪽 문제이므로 조용히 넘기지 않고 500으로 명확히 응답하고 원인을 전부 로그에 남긴다
-    @ExceptionHandler({ IOException.class, HttpMessageNotWritableException.class })
+    // 그 밖의 IO 오류(파일 처리 등) / 응답 직렬화 실패.
+    @ExceptionHandler({
+            IOException.class,
+            HttpMessageNotWritableException.class
+    })
     public ResponseEntity<ApiResponse<Void>> handleIOFailure(Exception e) {
         log.error("응답 처리 중 오류", e);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -156,8 +193,11 @@ public class GlobalExceptionHandler {
         if (e instanceof ErrorResponse errorResponse) {
             String detail = errorResponse.getBody().getDetail();
             return ResponseEntity.status(errorResponse.getStatusCode())
-                    .body(ApiResponse.error(detail != null ? detail : "요청을 처리할 수 없습니다."));
+                    .body(ApiResponse.error(
+                            detail != null ? detail : "요청을 처리할 수 없습니다."
+                    ));
         }
+
         // 예상 못 한 오류는 원인을 로그에 남기고 사용자에게는 일반 메시지만 노출
         log.error("처리되지 않은 예외", e);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

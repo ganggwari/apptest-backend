@@ -3,6 +3,7 @@ package com.mbc.puf.risk;
 import java.math.BigDecimal;
 import java.util.List;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -11,7 +12,8 @@ import com.mbc.puf.common.enums.RiskLevel;
 import com.mbc.puf.common.enums.UnderpassCurrentStatus;
 import com.mbc.puf.common.enums.UnderpassEventType;
 import com.mbc.puf.control.service.ControlService;
-import com.mbc.puf.display.service.VmsDisplayService;
+import com.mbc.puf.display.service.VmsReconcileRequested;
+import com.mbc.puf.navigation.service.HazardRefreshRequested;
 import com.mbc.puf.notification.service.NotificationService;
 import com.mbc.puf.stream.StreamPayloads;
 import com.mbc.puf.stream.StreamPublisher;
@@ -35,19 +37,19 @@ public class RiskLevelService {
     private final StreamPublisher streamPublisher;
     private final NotificationService notificationService;
     private final ControlService controlService;
-    private final VmsDisplayService vmsDisplayService;   // 위험도가 바뀌면 전광판 문구를 다시 맞춘다
+    private final ApplicationEventPublisher eventPublisher;   // 위험도가 바뀌면 커밋 뒤에 전광판 문구를 다시 맞추도록 알린다
 
     public RiskLevelService(RiskPolicy policy, ThresholdRepository thresholdRepository,
             UnderpassEventRepository eventRepository, StreamPublisher streamPublisher,
             NotificationService notificationService, ControlService controlService,
-            VmsDisplayService vmsDisplayService) {
+            ApplicationEventPublisher eventPublisher) {
         this.policy = policy;
         this.thresholdRepository = thresholdRepository;
         this.eventRepository = eventRepository;
         this.streamPublisher = streamPublisher;
         this.notificationService = notificationService;
         this.controlService = controlService;
-        this.vmsDisplayService = vmsDisplayService;
+        this.eventPublisher = eventPublisher;
     }
 
     /**
@@ -77,6 +79,7 @@ public class RiskLevelService {
             event.setWaterCm(water);
             eventRepository.saveAndFlush(event);
             levelEventId = event.getId();
+            eventPublisher.publishEvent(new HazardRefreshRequested());   // 내비 위험지점도 커밋 뒤에 바로 다시 계산
 
             boolean up = after.ordinal() > before.ordinal();
             streamPublisher.publishPublic("risk-level-change", underpass.getRegionId(),
@@ -91,11 +94,12 @@ public class RiskLevelService {
 
         // 수위가 차단 기준에 닿았고 아직 열려 있으면 자동 차단. 이미 차단 중이면 아무 것도 하지 않는다
         if (underpass.getCurrentStatus() == UnderpassCurrentStatus.NORMAL && policy.reachedBlock(underpass, water)) {
-            controlService.autoBlock(underpass.getId(), water);   // 차단하면서 전광판도 다시 맞춘다
+            controlService.autoBlock(underpass.getId(), water);   // 전광판은 차단이 커밋된 뒤에 다시 맞춘다
             return true;
         }
         if (levelEventId != null) {
-            vmsDisplayService.reconcileForUnderpass(underpass.getId(), levelEventId, null);
+            // 전광판 갱신은 이 처리가 커밋된 뒤에 따로 한다 (전광판 쪽 오류가 위험도 저장을 되돌리지 않게)
+            eventPublisher.publishEvent(new VmsReconcileRequested(underpass.getId(), levelEventId, null));
         }
         return false;
     }

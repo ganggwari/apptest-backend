@@ -46,6 +46,12 @@ public final class LikePattern {
         return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 
+    // 네이티브 SQL 용: 소문자 부분일치 패턴 ("%검색어%", 이스케이프 \\). 검색어가 비면 null (andIf 조건이 빠진다)
+    public static String lowerContainsOrNull(String raw) {
+        LikePattern pattern = of(raw);
+        return pattern == null ? null : pattern.getContains().toLowerCase();
+    }
+
     public String getExact() { return exact; }
     public String getPrefix() { return prefix; }
     public String getContains() { return contains; }

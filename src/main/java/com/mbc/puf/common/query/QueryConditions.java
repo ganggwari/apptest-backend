@@ -79,6 +79,36 @@ public class QueryConditions {
         return this;
     }
 
+    // 직원(관리자) 이름 검색: 컬럼에는 관리자 id 만 있을 때 manager -> employee 이름으로 찾는다 (부분일치, 대소문자 무시)
+    public QueryConditions managerNameIfPresent(String raw, String managerIdPath) {
+        LikePattern pattern = LikePattern.of(raw);
+        if (pattern != null) {
+            clauses.add(managerIdPath + " in (select mm.id from Manager mm, Employee ee where ee.id = mm.employeeId"
+                    + " and lower(ee.name) like :" + bind(pattern.getContains().toLowerCase()) + " escape '\\')");
+        }
+        return this;
+    }
+
+    // 고객 이름 검색: 컬럼에는 고객 id 만 있을 때 customer 이름으로 찾는다 (부분일치, 대소문자 무시)
+    public QueryConditions customerNameIfPresent(String raw, String customerIdPath) {
+        LikePattern pattern = LikePattern.of(raw);
+        if (pattern != null) {
+            clauses.add(customerIdPath + " in (select cc.id from Customer cc where lower(cc.name) like :"
+                    + bind(pattern.getContains().toLowerCase()) + " escape '\\')");
+        }
+        return this;
+    }
+
+    // 차량 id 컬럼에서 그 차량 주인(고객)의 이름으로 검색
+    public QueryConditions carOwnerNameIfPresent(String raw, String carIdPath) {
+        LikePattern pattern = LikePattern.of(raw);
+        if (pattern != null) {
+            clauses.add(carIdPath + " in (select cr.id from Car cr, Customer cu where cu.id = cr.customerId"
+                    + " and lower(cu.name) like :" + bind(pattern.getContains().toLowerCase()) + " escape '\\')");
+        }
+        return this;
+    }
+
     // 차량번호 검색어가 있을 때만: 공백을 무시하고 포함 검색 (예: "12가 3456" 으로도 "12가3456"을 찾음)
     public QueryConditions carNumIfPresent(String raw, String... paths) {
         LikePattern pattern = LikePattern.ofCar(raw);

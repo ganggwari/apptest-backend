@@ -49,10 +49,11 @@ public class FaqController {
     @GetMapping
     public ApiResponse<PageResponse<FaqListItem>> list(
             @RequestParam(name = "keyword", required = false) String keyword,
+            @RequestParam(name = "authorName", required = false) String authorName,
             @RequestParam(name = "category", required = false) FaqCategory category,
             @RequestParam(name = "page", defaultValue = "1") int page,
             @RequestParam(name = "size", defaultValue = "20") int size) {
-        return ApiResponse.ok(faqService.getFaqList(keyword, category, page, size));
+        return ApiResponse.ok(faqService.getFaqList(keyword, authorName, category, page, size));
     }
 
     // 자주 보는 질문 (로그인 불필요): 조회수 높은 순 상위 limit 개 (기본 5, 최대 20)

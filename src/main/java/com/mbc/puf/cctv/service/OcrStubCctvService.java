@@ -152,6 +152,11 @@ public class OcrStubCctvService implements CctvService {
     }
 
     @Override
+    public JsonNode analysisState(LoginUser loginUser, Long cameraId) {
+        return state(current);   // 시연(stub) 모드: 영상 분석 서버가 없으므로 번호판 stub 상태를 그대로 보여 준다
+    }
+
+    @Override
     public JsonNode startPlate(LoginUser loginUser, Long cameraId) {
         return startPlate(loginUser, cameraId, null);
     }

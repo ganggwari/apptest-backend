@@ -35,4 +35,10 @@ public interface VmsDisplayService {
 
     /** 지하차도에서 가장 가까운 전광판의 1페이지 문구 (없으면 null). 경찰 전달서 등에 쓴다 */
     String nearestFirstPageText(Long underpassId);
+
+    /**
+     * 지하차도가 차단됐을 때 가장 가까운 전광판에 뜰 문구를 미리 계산한다 (DB 는 바꾸지 않는다, 연결된 전광판이 없으면 null).
+     * 차단 직후 전광판 갱신은 커밋 뒤로 미뤄지므로, 그 전에 만드는 경찰 전달서(스냅샷)의 문구를 이 값으로 채운다.
+     */
+    String previewBlockText(Long underpassId);
 }

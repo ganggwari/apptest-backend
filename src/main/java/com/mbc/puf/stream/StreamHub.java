@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.Executors;
 
 import org.slf4j.Logger;
@@ -29,6 +30,9 @@ import jakarta.annotation.PreDestroy;
  * - 연결 유형 두 가지: 고객 스트림(/api/stream, 비로그인 포함) / 관리자 스트림(/api/admin/stream)
  * - 전송은 전용 스레드 1개가 순서대로 처리한다 (느린 클라이언트가 DB 처리 스레드를 붙잡지 않게)
  * - 30초마다 heartbeat(주석 줄)를 보내 프록시가 연결을 끊지 않게 하고, 끊어진 연결을 정리한다
+ *   (heartbeat 도 전용 전송 스레드에서 보낸다. 공용 스케줄러 스레드가 느린 연결 때문에 멈추지 않게)
+ * - 비로그인 연결은 MAX_ANONYMOUS_CONNECTIONS 개까지만 둔다. 넘으면 가장 오래된 비로그인 연결을 닫는다
+ *   (닫힌 브라우저는 EventSource 가 자동으로 다시 연결하므로 화면은 멈추지 않는다)
  * - 재연결 시 놓친 이벤트를 다시 보내지는 않는다. 프런트가 'connected' 이벤트를 받으면 REST 로 현재 상태를 다시 읽는다
  */
 @Component
@@ -53,7 +57,14 @@ public class StreamHub {
         boolean isAdmin() {
             return managerId != null;
         }
+
+        boolean isAnonymous() {
+            return managerId == null && customerId == null;
+        }
     }
+
+    /** 비로그인 연결 상한 (이 수를 넘으면 가장 오래된 비로그인 연결부터 닫는다) */
+    static final int MAX_ANONYMOUS_CONNECTIONS = 500;
 
     private final List<Connection> connections = new CopyOnWriteArrayList<>();
     private final ExecutorService sender = Executors.newSingleThreadExecutor(r -> {
@@ -69,6 +80,9 @@ public class StreamHub {
 
     /** 고객 스트림 연결. customerId 가 null 이면 비로그인(또는 관리자 세션)으로 공개 이벤트만 받는다 */
     public SseEmitter connectCustomer(Long customerId) {
+        if (customerId == null) {
+            closeOldestAnonymousIfFull();
+        }
         Connection c = register(new Connection(newEmitter(), customerId, null, Set.of()));
         sendConnected(c, customerId != null ? "CUSTOMER" : "ANONYMOUS");
         return c.emitter;
@@ -86,11 +100,27 @@ public class StreamHub {
     public void dispatch(StreamEvent event) {
         sender.execute(() -> {
             for (Connection c : connections) {
+                // 담당 지역 배정 변경은 커밋 후 대상 연결의 필터부터 갱신한다. 다른 탭의 재연결 전에도 새 범위를 적용한다.
+                if ("manager-assignment-change".equals(event.name()) && c.isAdmin()
+                        && java.util.Objects.equals(c.managerId, event.targetId())) {
+                    c.regionIds.clear();
+                    c.regionIds.addAll(managerRegionRepository.findRegionIds(c.managerId));
+                }
                 if (matches(c, event)) {
                     send(c, SseEmitter.event().name(event.name()).data(event.data(), MediaType.APPLICATION_JSON));
                 }
             }
         });
+    }
+
+    /** 관리자 스트림에 연결된 사람이 한 명이라도 있는지 (없으면 관리자용 상태 조회를 건너뛰는 데 쓴다) */
+    public boolean hasAdminConnections() {
+        for (Connection c : connections) {
+            if (c.isAdmin()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** 현재 연결 수 (점검/테스트용) */
@@ -126,16 +156,21 @@ public class StreamHub {
 
     // 30초마다 heartbeat. 프록시(Nginx 등)의 유휴 연결 끊김 방지 + 죽은 연결 청소
     // A 4 KiB randomized SSE comment discourages proxy buffering; named events let clients detect stalls.
+    // 스케줄러 스레드는 전송 작업을 맡기기만 하고, 실제 쓰기는 sse-sender 스레드가 한다 (느린 연결이 다른 스케줄 작업을 막지 않게)
     @Scheduled(fixedRateString = "#{${puf.stream.heartbeat-seconds:15} * 1000}")
     public void heartbeat() {
         if (connections.isEmpty()) return;
-        sender.execute(() -> {
-            Map<String, Object> data = new LinkedHashMap<>();
-            data.put("t", System.currentTimeMillis());
-            for (Connection c : connections) {
-                send(c, SseEmitter.event().comment(pad()).name("heartbeat").data(data, MediaType.APPLICATION_JSON));
-            }
-        });
+        try {
+            sender.execute(() -> {
+                Map<String, Object> data = new LinkedHashMap<>();
+                data.put("t", System.currentTimeMillis());
+                for (Connection c : connections) {
+                    send(c, SseEmitter.event().comment(pad()).name("heartbeat").data(data, MediaType.APPLICATION_JSON));
+                }
+            });
+        } catch (RejectedExecutionException e) {
+            // 서버 종료 중이라 무시
+        }
     }
 
     private static final String PAD_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -161,6 +196,26 @@ public class StreamHub {
 
     private SseEmitter newEmitter() {
         return new SseEmitter(60L * 60 * 1000);   // 1시간 뒤 서버가 닫는다. 프런트(EventSource)가 자동 재연결
+    }
+
+    // 비로그인 연결이 상한에 닿았으면 가장 오래된 비로그인 연결 하나를 닫는다 (등록 순서대로 쌓이므로 앞쪽이 오래된 것)
+    private void closeOldestAnonymousIfFull() {
+        long anonymous = connections.stream().filter(Connection::isAnonymous).count();
+        if (anonymous < MAX_ANONYMOUS_CONNECTIONS) {
+            return;
+        }
+        for (Connection c : connections) {
+            if (c.isAnonymous()) {
+                connections.remove(c);
+                try {
+                    c.emitter.complete();
+                } catch (Exception ignored) {
+                    // 이미 닫힌 연결
+                }
+                log.info("SSE 비로그인 연결이 상한({})에 닿아 가장 오래된 연결을 닫았다", MAX_ANONYMOUS_CONNECTIONS);
+                return;
+            }
+        }
     }
 
     private Connection register(Connection c) {

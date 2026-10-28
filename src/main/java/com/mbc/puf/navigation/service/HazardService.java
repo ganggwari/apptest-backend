@@ -22,9 +22,9 @@ public interface HazardService {
     /** 화면에 내려주는 현재 위험 상태 */
     HazardState state();
 
-    /** 2초마다 DB 를 보고 위험 상태가 달라졌으면 알린다 */
+    /** 30초마다 DB 를 보고 위험 상태가 달라졌으면 알린다 (안전 점검용. 평소에는 HazardRefreshRequested 이벤트로 바로 갱신된다) */
     void refreshIfChanged();
 
-    /** 지금 DB 기준으로 다시 읽고, 달라졌으면 WebSocket / SSE 로 알린다 */
+    /** 지금 DB 기준으로 다시 읽고, 달라졌으면 SSE 로 알린다 */
     void refresh();
 }

@@ -26,5 +26,7 @@ public record PmPeriodSummary(
         List<PmEventItem> openEvents,
         List<PmReportEquipment> stale,
         int neverReceived,
-        List<PmReportEquipment> recommended) {
+        List<PmReportEquipment> recommended,
+        PmSinkholeSummary sinkhole,
+        PmControlSummary control) {
 }

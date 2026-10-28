@@ -23,6 +23,7 @@ import com.mbc.puf.common.security.LoginUser;
 import com.mbc.puf.common.security.ScopeResolver;
 import com.mbc.puf.pm.dto.PmActionItem;
 import com.mbc.puf.pm.dto.PmEquipmentDetailResponse;
+import com.mbc.puf.pm.dto.PmCurrentSensors;
 import com.mbc.puf.pm.dto.PmEquipmentListItem;
 import com.mbc.puf.pm.dto.PmEventItem;
 import com.mbc.puf.pm.dto.PmScorePoint;
@@ -52,7 +53,12 @@ public class PmQueryServiceImpl implements PmQueryService {
     private static final String EQUIP_SELECT = """
             SELECT e.id AS equip_id, CAST(e.type AS text) AS type, e.name AS name, u.id AS underpass_id, u.name AS underpass_name,
                    u.region_id AS region_id, ls.score AS score, CAST(ls.level AS text) AS level,
-                   ls.predicted_at AS last_received_at, ls.reasons AS reasons_json,
+                   CASE WHEN e.type::text='ROAD' THEN rr.analyzed_at ELSE ls.predicted_at END AS last_received_at, ls.reasons AS reasons_json,
+                   CASE WHEN e.type::text='ROAD' THEN
+                     CASE WHEN rr.id IS NULL THEN '미분석' WHEN re.status::text='RESOLVED' THEN '조치 완료'
+                          WHEN re.status::text='ETC' THEN CASE WHEN rr.review_status='FALSE_POSITIVE' THEN '오탐 확인' ELSE '기타 종료' END
+                          WHEN NOT rr.detected THEN '이상 미탐지' WHEN rr.review_status='CONFIRMED' THEN '싱크홀 확인' ELSE '싱크홀 의심' END
+                     ELSE NULL END AS road_status, rr.confidence AS detection_confidence,
                    oe.id AS open_event_id, CAST(oe.status AS text) AS open_event_status,
                    (SELECT s2.score FROM pm_score s2
                      WHERE s2.equip_id = e.id AND s2.predicted_at >= ls.predicted_at - INTERVAL '7 days'
@@ -67,6 +73,10 @@ public class PmQueryServiceImpl implements PmQueryService {
              LEFT JOIN LATERAL (SELECT ev.id, ev.status FROM pm_event ev
                                  WHERE ev.equip_id = e.id AND CAST(ev.status AS text) IN (:openStatuses)
                                  ORDER BY ev.id DESC LIMIT 1) oe ON TRUE
+             LEFT JOIN LATERAL (SELECT r.* FROM pm_road_result r WHERE r.equip_id=e.id
+                 ORDER BY CASE WHEN r.event_id=oe.id AND r.detected THEN 0 ELSE 1 END,
+                          r.analyzed_at DESC, r.id DESC LIMIT 1) rr ON e.type::text='ROAD'
+             LEFT JOIN pm_event re ON re.id=rr.event_id
              WHERE 1 = 1
             """;
 
@@ -89,7 +99,7 @@ public class PmQueryServiceImpl implements PmQueryService {
     // ---- 점검 이력 ----
     private static final String ACTION_SELECT = """
             SELECT a.id AS action_id, ev.id AS event_id, e.id AS equip_id, CAST(e.type AS text) AS type, e.name AS name,
-                   u.id AS underpass_id, u.name AS underpass_name, u.region_id AS region_id, a.content AS content,
+                   u.id AS underpass_id, u.name AS underpass_name, u.region_id AS region_id, a.content AS content, CAST(a.kind AS text) AS kind,
                    a.manager_id AS manager_id, emp.name AS manager_name, a.created_at AS created_at,
                    CAST(ev.level AS text) AS event_level, ev.score AS score_before,
                    (SELECT s.score FROM pm_score s WHERE s.equip_id = e.id AND s.predicted_at > a.created_at
@@ -128,7 +138,7 @@ public class PmQueryServiceImpl implements PmQueryService {
         ScopeQuery resolved = scopeResolver.resolve(loginUser, scope);
         PageParams p = page.toParams();
         NativeSql rows = equipFilters(new NativeSql(EQUIP_SELECT + EQUIP_FROM), resolved, type, level)
-                .append(" ORDER BY ls.score DESC NULLS LAST, e.id LIMIT :size OFFSET :offset")
+                .append(" ORDER BY CASE WHEN e.type::text='ROAD' AND oe.id IS NOT NULL THEN 0 ELSE 1 END, ls.score DESC NULLS LAST, e.id LIMIT :size OFFSET :offset")
                 .param("size", p.getSize()).param("offset", p.getOffset());
         NativeSql count = equipFilters(new NativeSql("SELECT COUNT(*) AS total" + EQUIP_FROM), resolved, type, level);
         List<PmEquipmentListItem> items = rows.list(em, PmEquipmentListItem.class);
@@ -170,7 +180,27 @@ public class PmQueryServiceImpl implements PmQueryService {
         LocalDateTime lastCheckedAt = recent.isEmpty() ? null : recent.get(0).getCreatedAt();
         return new PmEquipmentDetailResponse(item, detail, cautionMin, dangerMin, lastCheckedAt, recent,
                 row == null ? null : row.getModelVersion(), row == null ? null : row.getPredictedAt(),
-                anomalyStartedAt, topCauses(detail, row == null ? null : row.getScore()));
+                anomalyStartedAt, topCauses(detail, row == null ? null : row.getScore()),
+                currentSensors(equipId, item.getType()));
+    }
+
+    /** The caller has already checked the equipment scope via findEquipment. */
+    PmCurrentSensors currentSensors(Long equipId, PmEquipmentType type) {
+        String table = PmSensorServiceImpl.tableOf(type);
+        List<String> columns = PmSensorServiceImpl.columnsOf(type);
+        if (table == null || columns == null) return null; // ROAD uses video analysis.
+        String selected = columns.stream().map(column -> "s." + column).collect(java.util.stream.Collectors.joining(", "));
+        List<Object[]> rows = new NativeSql("SELECT s.recorded_at, " + selected + " FROM " + table
+                + " s WHERE s.equip_id = :equipId ORDER BY s.recorded_at DESC LIMIT 1")
+                .param("equipId", equipId).rows(em);
+        if (rows.isEmpty()) return new PmCurrentSensors(null, java.util.Map.of());
+        Object[] row = rows.get(0);
+        java.util.Map<String, Double> values = new java.util.LinkedHashMap<>();
+        for (int i = 0; i < columns.size(); i++) {
+            Object value = row[i + 1];
+            values.put(columns.get(i), value == null ? null : ((Number) value).doubleValue());
+        }
+        return new PmCurrentSensors(toLdt(row[0]), values);
     }
 
     /** detail.features 에서 영향도 상위 3개를 골라 기여 점수(영향도 × 점수 / 100)로 바꾼다. features 가 없으면 빈 목록 */
@@ -294,19 +324,21 @@ public class PmQueryServiceImpl implements PmQueryService {
     // ------------------------------------------------------------------ 점검 이력
     @Override
     public PageResponse<PmActionItem> getActions(LoginUser loginUser, ScopeQuery scope, PmEquipmentType type, Long equipId,
-                                                 PeriodQuery period, PageQuery page) {
+                                                 String managerName, PeriodQuery period, PageQuery page) {
         ScopeQuery resolved = scopeResolver.resolve(loginUser, scope);
         PageParams p = page.toParams();
-        NativeSql rows = actionFilters(new NativeSql(ACTION_SELECT + ACTION_FROM), resolved, type, equipId, period)
+        NativeSql rows = actionFilters(new NativeSql(ACTION_SELECT + ACTION_FROM), resolved, type, equipId, managerName, period)
                 .append(" ORDER BY a.created_at DESC, a.id DESC LIMIT :size OFFSET :offset")
                 .param("size", p.getSize()).param("offset", p.getOffset());
-        NativeSql count = actionFilters(new NativeSql("SELECT COUNT(*) AS total" + ACTION_FROM), resolved, type, equipId, period);
+        NativeSql count = actionFilters(new NativeSql("SELECT COUNT(*) AS total" + ACTION_FROM), resolved, type, equipId, managerName, period);
         return new PageResponse<>(rows.list(em, PmActionItem.class), p.getPage(), p.getSize(),
                 count.single(em, Total.class).getTotal());
     }
 
-    private NativeSql actionFilters(NativeSql sql, ScopeQuery scope, PmEquipmentType type, Long equipId, PeriodQuery period) {
+    private NativeSql actionFilters(NativeSql sql, ScopeQuery scope, PmEquipmentType type, Long equipId, String managerName, PeriodQuery period) {
+        String nameLike = com.mbc.puf.common.util.LikePattern.lowerContainsOrNull(managerName);
         return sql
+                .andIf(nameLike != null, " AND LOWER(emp.name) LIKE :nameLike ESCAPE '\\'", "nameLike", nameLike)
                 .andIf(scope.getRegionIds() != null, " AND u.region_id IN (:regionIds)", "regionIds", scope.getRegionIds())
                 .andIf(scope.getUnderpassId() != null, " AND u.id = :underpassId", "underpassId", scope.getUnderpassId())
                 .andIf(type != null, " AND CAST(e.type AS text) = :type", "type", type == null ? null : type.name())

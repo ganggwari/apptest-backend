@@ -46,6 +46,8 @@ public class PlateLogReviewController {
      *  reviewStatus          : NONE/PENDING/CONFIRMED/AUTO_PROCESSED
      *  recognitionStatus     : SUCCESS/LOW_CONFIDENCE/FAIL/UNMATCHED
      *  carNum                : 공통 Vehicle 조건 (인식값·정정값에서 공백 무시 포함검색)
+     *  reviewerName          : 검토한 직원 이름 (부분일치)
+     *  customerName          : 매칭된 차량 고객 이름 (부분일치)
      *  startDate~endDate     : 공통 Period 조건 (인식일, endDate 당일 포함)
      *  page, size            : 공통 Page 조건
      */
@@ -56,11 +58,13 @@ public class PlateLogReviewController {
             @RequestParam(name = "reviewStatus", required = false) ReviewStatus reviewStatus,
             @RequestParam(name = "recognitionStatus", required = false) RecognitionStatus recognitionStatus,
             @ModelAttribute VehicleQuery vehicle,
+            @RequestParam(name = "reviewerName", required = false) String reviewerName,
+            @RequestParam(name = "customerName", required = false) String customerName,
             @ModelAttribute PeriodQuery period,
             @ModelAttribute PageQuery page) {
         period.validate();
         return ApiResponse.ok(plateLogReviewService.getPlateLogs(loginUser, scope, reviewStatus, recognitionStatus,
-                vehicle, period, page));
+                vehicle, reviewerName, customerName, period, page));
     }
 
     // 수동 판별 (번호판 고쳐서 재매칭). REGIONAL_ADMIN은 본인 담당 지역 것만 가능

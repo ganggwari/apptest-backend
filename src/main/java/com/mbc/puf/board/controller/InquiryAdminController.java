@@ -48,11 +48,12 @@ public class InquiryAdminController {
     @GetMapping
     public ApiResponse<PageResponse<InquiryListItem>> list(
             @RequestParam(name = "keyword", required = false) String keyword,
+            @RequestParam(name = "customerName", required = false) String customerName,
             @RequestParam(name = "status", required = false) InquiryStatus status,
             @ModelAttribute PeriodQuery period,
             @ModelAttribute PageQuery page) {
         period.validate();
-        return ApiResponse.ok(inquiryService.getInquiryListForAdmin(keyword, status, period,
+        return ApiResponse.ok(inquiryService.getInquiryListForAdmin(keyword, customerName, status, period,
                 page.getPage(), page.getSize()));
     }
 

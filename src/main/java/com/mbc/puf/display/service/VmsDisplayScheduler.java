@@ -29,7 +29,7 @@ public class VmsDisplayScheduler {
         sync();
     }
 
-    @Scheduled(initialDelay = 60_000, fixedDelayString = "${puf.display.sync-seconds:60}000")
+    @Scheduled(initialDelay = 60_000, fixedDelayString = "#{${puf.display.sync-seconds:60} * 1000}")
     public void sync() {
         try {
             int changed = 0;

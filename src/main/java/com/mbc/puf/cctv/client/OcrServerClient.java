@@ -19,7 +19,7 @@ import com.mbc.puf.common.exception.BusinessException;
  * 영상(MJPEG)은 읽는 시간 제한 없이 흘려보내고, 나머지 짧은 요청은 puf.ocr-server.timeout-seconds 로 끊는다.
  */
 @Component
-public class OcrServerClient {
+public class OcrServerClient implements AiVideoClient {
 
     private final String baseUrl;
     private final String apiKey;

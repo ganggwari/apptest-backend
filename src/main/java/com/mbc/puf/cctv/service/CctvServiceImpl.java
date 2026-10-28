@@ -6,6 +6,9 @@ import java.nio.charset.StandardCharsets;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.annotation.Value;
+import com.mbc.puf.cctv.client.AiVideoClient;
+import com.mbc.puf.cctv.client.SinkholeServerClient;
 import org.springframework.stereotype.Service;
 
 import com.mbc.puf.cctv.client.OcrServerClient;
@@ -26,14 +29,23 @@ import tools.jackson.databind.ObjectMapper;
 public class CctvServiceImpl implements CctvService {
 
     private final OcrServerClient ocr;
+    private final SinkholeServerClient sinkhole;
+    private final long sinkholeCameraId;
+    private final String sinkholeUnderpassName;
     private final CameraRepository cameraRepository;
     private final UnderpassRepository underpassRepository;
     private final ScopeResolver scopeResolver;
     private final ObjectMapper objectMapper;
 
     public CctvServiceImpl(OcrServerClient ocr, CameraRepository cameraRepository, UnderpassRepository underpassRepository,
-                           ScopeResolver scopeResolver, ObjectMapper objectMapper) {
+                           ScopeResolver scopeResolver, ObjectMapper objectMapper,
+                           SinkholeServerClient sinkhole,
+                           @Value("${puf.sinkhole.camera-id:230}") long sinkholeCameraId,
+                           @Value("${puf.sinkhole.underpass-name:초량지하차도}") String sinkholeUnderpassName) {
         this.ocr = ocr;
+        this.sinkhole = sinkhole;
+        this.sinkholeCameraId = sinkholeCameraId;
+        this.sinkholeUnderpassName = sinkholeUnderpassName;
         this.cameraRepository = cameraRepository;
         this.underpassRepository = underpassRepository;
         this.scopeResolver = scopeResolver;
@@ -43,7 +55,7 @@ public class CctvServiceImpl implements CctvService {
     @Override
     public HttpResponse<InputStream> openStream(Long cameraId) {
         requireCamera(cameraId);
-        HttpResponse<InputStream> upstream = ocr.openStream("/stream/" + cameraId);
+        HttpResponse<InputStream> upstream = client(cameraId).openStream("/stream/" + cameraId);
         if (upstream.statusCode() != 200) {
             String body;
             try (InputStream in = upstream.body()) {
@@ -59,7 +71,7 @@ public class CctvServiceImpl implements CctvService {
     @Override
     public byte[] snapshot(Long cameraId) {
         requireCamera(cameraId);
-        HttpResponse<byte[]> res = ocr.getBytes("/stream/" + cameraId + "/snapshot");
+        HttpResponse<byte[]> res = client(cameraId).getBytes("/stream/" + cameraId + "/snapshot");
         if (res.statusCode() != 200) throw upstreamError(res.statusCode(), new String(res.body(), StandardCharsets.UTF_8));
         return res.body();
     }
@@ -72,20 +84,40 @@ public class CctvServiceImpl implements CctvService {
     @Override
     public JsonNode startPlate(LoginUser loginUser, Long cameraId) {
         requireOwnable(loginUser, requireCamera(cameraId));
-        return json(ocr.postBytes("/control/plate/start?cameraId=" + cameraId));
+        return json(client(cameraId).postBytes(controlPath(cameraId) + "/start?cameraId=" + cameraId));
     }
 
     @Override
     public JsonNode stopPlate(LoginUser loginUser, Long cameraId) {
         requireOwnable(loginUser, requireCamera(cameraId));
-        return json(ocr.postBytes("/control/plate/stop?cameraId=" + cameraId));
+        return json(client(cameraId).postBytes(controlPath(cameraId) + "/stop?cameraId=" + cameraId));
+    }
+
+    @Override
+    public JsonNode analysisState(LoginUser user, Long cameraId) {
+        requireOwnable(user, requireCamera(cameraId));
+        return json(client(cameraId).getBytes(controlPath(cameraId) + "?cameraId=" + cameraId));
+    }
+
+    private AiVideoClient client(Long cameraId) {
+        return cameraId == sinkholeCameraId ? sinkhole : ocr;
+    }
+    private String controlPath(Long cameraId) {
+        return cameraId == sinkholeCameraId ? "/control/sinkhole" : "/control/plate";
     }
 
     // ---------------------------------------------------------------
 
     private Camera requireCamera(Long cameraId) {
-        return cameraRepository.findByIdAndDeletedFalse(cameraId)
+        Camera camera = cameraRepository.findByIdAndDeletedFalse(cameraId)
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "카메라를 찾을 수 없습니다. cameraId=" + cameraId));
+        if (cameraId == sinkholeCameraId) {
+            Underpass underpass = underpassRepository.findByIdAndDeletedFalse(camera.getUnderpassId())
+                    .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "카메라의 지하차도가 없습니다."));
+            if (!sinkholeUnderpassName.equals(underpass.getName()))
+                throw new BusinessException(HttpStatus.CONFLICT, "싱크홀 카메라가 초량지하차도에 연결되어 있지 않습니다.");
+        }
+        return camera;
     }
 
     private void requireOwnable(LoginUser loginUser, Camera camera) {
@@ -96,7 +128,7 @@ public class CctvServiceImpl implements CctvService {
 
     // OCR 서버의 {"detail": "..."} 오류 문구를 살려서, 404/503 은 같은 상태코드로 그 밖에는 502 로 돌려준다
     private BusinessException upstreamError(int status, String body) {
-        String message = "OCR 서버 오류 (" + status + ")";
+        String message = "영상 분석 서버 오류 (" + status + ")";
         try {
             JsonNode detail = objectMapper.readTree(body).get("detail");
             if (detail != null && detail.isTextual()) message = detail.asText();

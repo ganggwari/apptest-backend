@@ -31,7 +31,7 @@ import tools.jackson.databind.JsonNode;
  *  - /route, /hazards : 로그인한 고객/관리자만 (카카오 호출 한도 보호)
  *  - /config, /places, /directions, /weather : 로그인 없이 쓸 수 있는 화면용 조회 (places, directions 는 IP 별 분당 호출 제한)
  */
-@Tag(name = "내비게이션", description = "장소 검색·후보 경로·날씨, 길찾기(위험 지하차도 우회), 위험 상태, 실시간 WebSocket(/ws/navigation)")
+@Tag(name = "내비게이션", description = "장소 검색·후보 경로·날씨, 길찾기(위험 지하차도 우회), 위험 상태")
 @RestController
 @RequestMapping("/api/navigation")
 public class NavigationController {
@@ -66,7 +66,7 @@ public class NavigationController {
         return ApiResponse.ok(detourService.find(o[1], o[0], d[1], d[0], heading));
     }
 
-    @Operation(summary = "현재 위험 상태", description = "관심 이상이거나 차단 중인 지하차도 목록. WebSocket 이 끊겼을 때 폴링이나 접속 직후 확인용. version 이 바뀌면 상태가 바뀐 것. 로그인 필요.")
+    @Operation(summary = "현재 위험 상태", description = "관심 이상이거나 차단 중인 지하차도 목록. 접속 직후 확인이나 폴링용(실시간 변화는 SSE data-changed navigation-hazard). version 이 바뀌면 상태가 바뀐 것. 로그인 필요.")
     @GetMapping("/hazards")
     public ApiResponse<HazardState> hazards() {
         return ApiResponse.ok(hazardService.state());

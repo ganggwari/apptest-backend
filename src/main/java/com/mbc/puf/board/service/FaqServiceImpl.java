@@ -44,12 +44,13 @@ public class FaqServiceImpl implements FaqService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<FaqListItem> getFaqList(String keyword, FaqCategory category, int page, int size) {
+    public PageResponse<FaqListItem> getFaqList(String keyword, String authorName, FaqCategory category, int page, int size) {
         PageParams pageParams = PageParams.of(page, size);
         QueryConditions c = new QueryConditions()
                 .add("f.deleted = false")
                 .eqIfPresent("f.category", category)                       // null 이면 전체 분류
-                .containsIfPresent(keyword, "f.question", "f.answer");   // 질문+답변 통합 검색
+                .containsIfPresent(keyword, "f.question", "f.answer")   // 질문+답변 통합 검색
+                .containsIfPresent(authorName, "e.name");               // 작성 관리자 이름
 
         return PagedQuery.fetch(em, "select f, e.name" + FROM, "select count(f)" + FROM, c,
                 " order by f.sortOrder asc, f.id asc", Object[].class, row -> {

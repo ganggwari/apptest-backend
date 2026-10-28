@@ -10,6 +10,7 @@ import tools.jackson.databind.JsonNode;
 public class PmEquipmentDetailResponse {
 
     private final PmEquipmentListItem equipment;   // 목록과 같은 기본 정보 (코드·종류·지하차도·최근 점수·단계·사유·점검 상태)
+    private final PmCurrentSensors currentSensors;
     private final JsonNode detail;                 // 판단 근거 (최근 점수의 모델별 세부값. CCTV items / 펌프 topSignals / 전광판 suspectedCause / 수위 anomalyType)
     private final BigDecimal cautionMin;           // 이 설비의 주의 기준 점수
     private final BigDecimal dangerMin;            // 이 설비의 위험 기준 점수
@@ -27,8 +28,9 @@ public class PmEquipmentDetailResponse {
 
     public PmEquipmentDetailResponse(PmEquipmentListItem equipment, JsonNode detail, BigDecimal cautionMin,
                                      BigDecimal dangerMin, LocalDateTime lastCheckedAt, List<PmActionItem> recentActions, String modelVersion,
-                                     LocalDateTime scoredAt, String anomalyStartedAt, List<PmTopCause> topCauses) {
+                                     LocalDateTime scoredAt, String anomalyStartedAt, List<PmTopCause> topCauses, PmCurrentSensors currentSensors) {
         this.equipment = equipment;
+        this.currentSensors = currentSensors;
         this.detail = detail;
         this.cautionMin = cautionMin;
         this.dangerMin = dangerMin;
@@ -41,6 +43,7 @@ public class PmEquipmentDetailResponse {
     }
 
     public PmEquipmentListItem getEquipment() { return equipment; }
+    public PmCurrentSensors getCurrentSensors() { return currentSensors; }
     public JsonNode getDetail() { return detail; }
     public BigDecimal getCautionMin() { return cautionMin; }
     public BigDecimal getDangerMin() { return dangerMin; }

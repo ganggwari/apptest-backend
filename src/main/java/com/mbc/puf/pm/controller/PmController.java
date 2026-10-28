@@ -103,16 +103,17 @@ public class PmController {
     }
 
     /** 점검 이력 (조치 기록). 점검 전(이벤트 점수) → 점검 후(조치 뒤 첫 점수) 점수 포함 */
-    @Operation(summary = "점검 이력", description = "조치 기록 최근 순. startDate~endDate 는 조치 기록일 기준(endDate 당일 포함)")
+    @Operation(summary = "점검 이력", description = "조치 기록 최근 순. startDate~endDate 는 조치 기록일 기준(endDate 당일 포함). managerName 으로 등록자 이름(부분일치) 필터")
     @GetMapping("/actions")
     public ApiResponse<PageResponse<PmActionItem>> actions(
             @AuthenticationPrincipal LoginUser loginUser,
             @ModelAttribute ScopeQuery scope,
             @RequestParam(name = "type", required = false) PmEquipmentType type,
             @RequestParam(name = "equipId", required = false) Long equipId,
+            @RequestParam(name = "managerName", required = false) String managerName,
             @ModelAttribute PeriodQuery period,
             @ModelAttribute PageQuery page) {
         period.validate();
-        return ApiResponse.ok(pmQueryService.getActions(loginUser, scope, type, equipId, period, page));
+        return ApiResponse.ok(pmQueryService.getActions(loginUser, scope, type, equipId, managerName, period, page));
     }
 }

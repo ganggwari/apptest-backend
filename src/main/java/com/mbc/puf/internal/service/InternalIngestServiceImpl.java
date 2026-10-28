@@ -8,6 +8,8 @@ import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -16,6 +18,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.mbc.puf.alert.service.AlertService;
@@ -52,6 +56,7 @@ import com.mbc.puf.internal.dto.WaterLevelResponse;
 import com.mbc.puf.risk.RiskLevelService;
 import com.mbc.puf.plate.entity.PlateLog;
 import com.mbc.puf.plate.repository.PlateLogRepository;
+import com.mbc.puf.plate.service.PlateReviewPolicy;
 import com.mbc.puf.threshold.entity.Threshold;
 import com.mbc.puf.threshold.repository.ThresholdRepository;
 import com.mbc.puf.underpass.entity.Camera;
@@ -83,6 +88,10 @@ public class InternalIngestServiceImpl implements InternalIngestService {
 	// 캡처 이미지를 저장할 하위 폴더명 (file.upload-dir 아래)
 	private static final String IMAGE_SUBDIR = "plate-logs";
 
+	// 저장을 허용하는 이미지 확장자. 그 밖의 값(확장자 없음, 이상한 문자 포함)이면 .jpg 로 저장한다
+	private static final Set<String> IMAGE_EXTENSIONS = Set.of(".jpg", ".jpeg", ".png");
+	private static final String DEFAULT_IMAGE_EXTENSION = ".jpg";
+
 	// 출구 매칭 대상 상태: 아직 안 나간 차
 	private static final List<TransitStatus> ACTIVE_TRANSIT = List.of(TransitStatus.IN_TRANSIT, TransitStatus.REMAINING);
 
@@ -105,6 +114,9 @@ public class InternalIngestServiceImpl implements InternalIngestService {
 	// 첨부파일 저장 위치. application.properties의 file.upload-dir (board 도메인 첨부와 같은 설정을 공유)
 	@Value("${file.upload-dir}")
 	private String uploadDir;
+
+	@Value("${puf.ocr.review-relative-to-average:true}")
+	private boolean reviewRelativeToAverage = true;
 
 	public InternalIngestServiceImpl(RiskScoreRepository riskScoreRepository, PlateLogRepository plateLogRepository,
 			UnderpassRepository underpassRepository, UnderpassEventRepository eventRepository,
@@ -232,7 +244,10 @@ public class InternalIngestServiceImpl implements InternalIngestService {
 
 		// 신뢰도가 기준 미만이면 판별대기로 건다. 등록 차량 매칭 여부(LOW_CONFIDENCE/UNMATCHED)와는 무관하고,
 		// 신뢰도가 충분한 UNMATCHED나 OCR 실패(FAIL)는 걸지 않는다. recognition_status 값 자체는 그대로 둔다
-		if (isLowConfidence(request.getDetectedNum(), request.getConfidence())) {
+		BigDecimal recentAverage = reviewRelativeToAverage && request.getDetectedNum() != null
+				&& request.getConfidence() != null
+				? plateLogRepository.recentConfidenceAverage(request.getCameraId(), request.getDetectedAt()) : null;
+		if (PlateReviewPolicy.requiresReview(request.getDetectedNum(), request.getConfidence(), recentAverage)) {
 			plateLog.setReviewStatus(ReviewStatus.PENDING);
 			plateLog.setReviewDeadline(request.getDetectedAt().plusMinutes(1)); // 만료되면 스케줄러가 AUTO_PROCESSED로 바꿈
 		} else {
@@ -244,6 +259,10 @@ public class InternalIngestServiceImpl implements InternalIngestService {
 
 		Underpass underpass = underpassRepository.findByIdAndDeletedFalse(camera.getUnderpassId()).orElse(null);
 		if (underpass != null) {
+			// 모든 신규 OCR 기록을 담당 관리자에게 알린다. 중복 인식은 위에서 반환하므로 발행하지 않는다.
+			// StreamPublisher가 커밋 이후 전송하여 롤백된 기록의 재조회를 막는다.
+			streamPublisher.dataChangedToAdmins(underpass.getRegionId(), "plate-log", "CREATE", plateLog.getId());
+
 			// 입출구 매칭: 이 카메라가 소속 지하차도의 상행/하행 입·출구 카메라로 지정돼 있을 때만 처리
 			// (아직 지정 안 된 지하차도라면 조용히 건너뛴다 — 이건 "실제 게이트가 어디냐"의 문제라 camera_role과는 무관)
 			processTransit(underpass, camera, plateLog, storedDetectedNum);
@@ -288,21 +307,50 @@ public class InternalIngestServiceImpl implements InternalIngestService {
 			Path dir = Paths.get(uploadDir, IMAGE_SUBDIR, today);
 			Files.createDirectories(dir);
 
-			String original = image.getOriginalFilename();
-			String ext = "";
-			if (original != null && original.contains(".")) {
-				ext = original.substring(original.lastIndexOf('.'));
-			}
-			String filename = UUID.randomUUID() + ext;
+			String filename = UUID.randomUUID() + safeImageExtension(image.getOriginalFilename());
 
 			Path target = dir.resolve(filename);
 			image.transferTo(target);
+			deleteFileIfNotCommitted(target);
 
 			return IMAGE_SUBDIR + "/" + today + "/" + filename;
 		} catch (IOException e) {
 			log.warn("번호판 캡처 이미지 저장 실패 (인식 결과 저장은 계속 진행): {}", e.getMessage());
 			return null;
 		}
+	}
+
+	// 업로드된 파일 이름에서 확장자를 꺼내되, 허용 목록에 있는 것만 쓴다 (파일 이름에 경로 문자를 섞어 보내는 것을 막는다)
+	private static String safeImageExtension(String originalFilename) {
+		if (originalFilename == null) {
+			return DEFAULT_IMAGE_EXTENSION;
+		}
+		int dot = originalFilename.lastIndexOf('.');
+		if (dot < 0) {
+			return DEFAULT_IMAGE_EXTENSION;
+		}
+		String ext = originalFilename.substring(dot).toLowerCase(Locale.ROOT);
+		return IMAGE_EXTENSIONS.contains(ext) ? ext : DEFAULT_IMAGE_EXTENSION;
+	}
+
+	// DB 저장이 롤백되면 방금 저장한 파일은 DB 에 기록이 없으므로 지운다 (고아 파일 방지)
+	private void deleteFileIfNotCommitted(Path file) {
+		if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+			return;
+		}
+		TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+			@Override
+			public void afterCompletion(int status) {
+				if (status == STATUS_COMMITTED) {
+					return;
+				}
+				try {
+					Files.deleteIfExists(file);
+				} catch (IOException e) {
+					log.warn("롤백된 번호판 캡처 이미지 삭제 실패: {} ({})", file, e.getMessage());
+				}
+			}
+		});
 	}
 
 	// 수위계 측정값 수신: 저장 → 최신 수위 캐시 갱신 → 단계 재판정(경계 이상이면 자동 차단)
@@ -387,10 +435,7 @@ public class InternalIngestServiceImpl implements InternalIngestService {
 		}
 	}
 
-	// OCR이 번호를 읽었고(detectedNum != null) 신뢰도가 기준 미만이면 true. 차량 매칭 여부는 보지 않는다
-	private boolean isLowConfidence(String detectedNum, BigDecimal confidence) {
-		return detectedNum != null && confidence != null && confidence.compareTo(LOW_CONFIDENCE_THRESHOLD) < 0;
-	}
+	// Recognition status retains the fixed threshold; manual-review selection is independent.
 
 	private RecognitionStatus determineRecognitionStatus(String detectedNum, BigDecimal confidence, Long carId) {
 		if (detectedNum == null) {

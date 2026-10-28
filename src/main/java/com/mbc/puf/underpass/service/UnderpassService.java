@@ -65,7 +65,8 @@ public interface UnderpassService {
                                                        VehicleQuery vehicle, PeriodQuery period, PageQuery page);
 
     // 제어이력 (이벤트 + 전광판 문구 변경, 최신순). kind: EVENT/DISPLAY/null(전체)
-    PageResponse<ControlHistoryItem> getControlHistory(LoginUser loginUser, Long id, String kind, PeriodQuery period, PageQuery page);
+    PageResponse<ControlHistoryItem> getControlHistory(LoginUser loginUser, Long id, String kind, String operatorName,
+                                                       PeriodQuery period, PageQuery page);
 
     // 잔류/장시간 IN_TRANSIT 자동 종료 (스케줄러 전용). 처리된 행 수
     // 통과 기록 1건을 관리자가 수동으로 통과 완료(EXITED) 처리. 이미 완료면 409, 담당 지역 밖이면 403

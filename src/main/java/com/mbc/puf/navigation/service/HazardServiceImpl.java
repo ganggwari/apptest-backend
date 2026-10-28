@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -14,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 import com.mbc.puf.common.enums.RiskLevel;
 import com.mbc.puf.common.enums.UnderpassCurrentStatus;
 import com.mbc.puf.navigation.dto.HazardState;
-import com.mbc.puf.navigation.ws.NavigationWsHub;
 import com.mbc.puf.stream.StreamPublisher;
 import com.mbc.puf.underpass.entity.Camera;
 import com.mbc.puf.underpass.entity.Underpass;
@@ -34,8 +35,9 @@ import jakarta.persistence.EntityManager;
 @Service
 public class HazardServiceImpl implements HazardService {
 
+    private static final Logger log = LoggerFactory.getLogger(HazardServiceImpl.class);
+
     private final EntityManager em;
-    private final NavigationWsHub wsHub;
     private final StreamPublisher streamPublisher;
     private final double defaultRadius;
     private final double surveyedRadius;
@@ -45,14 +47,14 @@ public class HazardServiceImpl implements HazardService {
     private volatile List<Hazard> hazards = List.of();
     private volatile String snapshotKey = null;
     private volatile long version = System.currentTimeMillis();
+    private volatile boolean lastCheckFailed = false;   // 같은 오류를 30초마다 반복해서 찍지 않으려고
 
-    public HazardServiceImpl(EntityManager em, NavigationWsHub wsHub, StreamPublisher streamPublisher,
+    public HazardServiceImpl(EntityManager em, StreamPublisher streamPublisher,
                          @Value("${puf.navigation.default-radius-m:70}") double defaultRadius,
                          @Value("${puf.navigation.surveyed-radius-m:40}") double surveyedRadius,
                          @Value("${puf.navigation.surveyed-underpass-ids:}") List<Long> surveyedIds,
                          @Value("${puf.navigation.radius-overrides:}") String radiusOverrides) {
         this.em = em;
-        this.wsHub = wsHub;
         this.streamPublisher = streamPublisher;
         this.defaultRadius = defaultRadius;
         this.surveyedRadius = surveyedRadius;
@@ -99,14 +101,25 @@ public class HazardServiceImpl implements HazardService {
                 h.blocked(), h.radiusM(), h.lengthM() > 0 ? h.lengthM() : null, message);
     }
 
-    /** 2초마다 DB 를 보고 위험 상태가 달라졌으면 알린다 (자동 차단·수동 차단/해제·단계 변화·지하차도 삭제 모두 같은 경로로 잡힌다) */
-    @Scheduled(initialDelay = 3_000, fixedDelay = 2_000)
+    /**
+     * 30초마다 DB 를 보고 위험 상태가 달라졌으면 알린다. 이것은 안전 점검용이다.
+     * 단계 변화·차단/해제·지하차도 수정/삭제는 커밋 직후 HazardRefreshListener 가 바로 갱신한다.
+     */
+    @Scheduled(initialDelay = 3_000, fixedDelay = 30_000)
     @Override
     public void refreshIfChanged() {
         try {
             refresh();
+            if (lastCheckFailed) {
+                lastCheckFailed = false;
+                log.info("[hazard] 위험지점 점검이 다시 정상으로 돌아왔다");
+            }
         } catch (RuntimeException e) {
-            // 일시적인 DB 오류는 다음 주기에 다시 시도한다
+            // 일시적인 DB 오류는 다음 주기에 다시 시도한다. 처음 실패했을 때만 로그를 남긴다
+            if (!lastCheckFailed) {
+                lastCheckFailed = true;
+                log.warn("[hazard] 위험지점 점검 실패 (다음 주기에 다시 시도): {}", e.toString());
+            }
         }
     }
 
@@ -126,8 +139,6 @@ public class HazardServiceImpl implements HazardService {
         hazards = loaded;
         version = Math.max(version + 1, System.currentTimeMillis());
         if (!first || !loaded.isEmpty()) {
-            HazardState state = state();
-            wsHub.broadcast("state", state);
             streamPublisher.dataChangedPublic(null, "navigation-hazard", "UPDATE", null);
         }
     }

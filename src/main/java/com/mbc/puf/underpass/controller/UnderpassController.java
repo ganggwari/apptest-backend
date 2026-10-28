@@ -194,10 +194,11 @@ public class UnderpassController {
             @AuthenticationPrincipal LoginUser loginUser,
             @PathVariable("id") Long id,
             @RequestParam(name = "kind", required = false) String kind,
+            @RequestParam(name = "operatorName", required = false) String operatorName,
             @ModelAttribute PeriodQuery period,
             @ModelAttribute PageQuery page) {
         period.validate();
-        return ApiResponse.ok(underpassService.getControlHistory(loginUser, id, kind, period, page));
+        return ApiResponse.ok(underpassService.getControlHistory(loginUser, id, kind, operatorName, period, page));
     }
 
 }

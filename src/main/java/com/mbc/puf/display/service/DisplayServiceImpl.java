@@ -13,6 +13,13 @@ import com.mbc.puf.common.exception.BusinessException;
 import com.mbc.puf.common.jpa.DbClock;
 import com.mbc.puf.common.security.LoginUser;
 import com.mbc.puf.common.security.ScopeResolver;
+import com.mbc.puf.common.jpa.NativeSql;
+import com.mbc.puf.common.request.PageParams;
+import com.mbc.puf.common.request.PageQuery;
+import com.mbc.puf.common.request.PeriodQuery;
+import com.mbc.puf.common.request.ScopeQuery;
+import com.mbc.puf.common.response.PageResponse;
+import com.mbc.puf.display.dto.DisplayHistoryItem;
 import com.mbc.puf.display.dto.DisplayPageSaveRequest;
 import com.mbc.puf.display.dto.DisplayPresetItem;
 import com.mbc.puf.display.dto.VmsPageItem;
@@ -137,6 +144,61 @@ public class DisplayServiceImpl implements DisplayService {
         pageRepository.flush();
         pageRepository.shiftPageNoDown(vmsId, pageNo);   // 삭제된 페이지 뒤의 번호를 1씩 내린다
         publish(vmsId, underpassId, pageNo, "DELETE");
+    }
+
+    // ─── 변경 이력 ───────────────────────────────────────────────────
+
+    private static final String HISTORY_SELECT = """
+            SELECT h.id AS history_id, h.its_vms_id AS vms_id, v.name AS vms_name, h.page_id AS page_id,
+                   h.underpass_id AS underpass_id, u.name AS underpass_name, h.event_id AS event_id,
+                   h.old_content AS old_content, h.new_content AS new_content, h.changed_by AS changed_by,
+                   emp.name AS changed_by_name, h.changed_at AS changed_at
+            """;
+    private static final String HISTORY_FROM = """
+             FROM display_history h
+             JOIN its_vms v ON v.id = h.its_vms_id
+             JOIN underpass u ON u.id = h.underpass_id
+             LEFT JOIN manager m ON m.id = h.changed_by
+             LEFT JOIN employee emp ON emp.id = m.employee_id
+             WHERE 1 = 1
+            """;
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<DisplayHistoryItem> getHistory(LoginUser loginUser, ScopeQuery scope, Long vmsId, String source,
+                                                       String managerName, PeriodQuery period, PageQuery page) {
+        String src = source == null || source.isBlank() ? null : source.trim().toUpperCase();
+        if (src != null && !src.equals("AUTO") && !src.equals("MANUAL")) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "source는 AUTO 또는 MANUAL 이어야 합니다.");
+        }
+        ScopeQuery resolved = scopeResolver.resolve(loginUser, scope);
+        PageParams p = page.toParams();
+        NativeSql rows = historyFilters(new NativeSql(HISTORY_SELECT + HISTORY_FROM), resolved, vmsId, src, managerName, period)
+                .append(" ORDER BY h.changed_at DESC, h.id DESC LIMIT :size OFFSET :offset")
+                .param("size", p.getSize()).param("offset", p.getOffset());
+        NativeSql count = historyFilters(new NativeSql("SELECT COUNT(*) AS total" + HISTORY_FROM), resolved, vmsId, src, managerName, period);
+        return new PageResponse<>(rows.list(em, DisplayHistoryItem.class), p.getPage(), p.getSize(),
+                count.single(em, Total.class).getTotal());
+    }
+
+    private NativeSql historyFilters(NativeSql sql, ScopeQuery scope, Long vmsId, String src, String managerName, PeriodQuery period) {
+        String nameLike = com.mbc.puf.common.util.LikePattern.lowerContainsOrNull(managerName);
+        return sql
+                .andIf(nameLike != null, " AND LOWER(emp.name) LIKE :nameLike ESCAPE '\\'", "nameLike", nameLike)
+                .andIf(scope.getRegionIds() != null, " AND u.region_id IN (:regionIds)", "regionIds", scope.getRegionIds())
+                .andIf(scope.getUnderpassId() != null, " AND u.id = :underpassId", "underpassId", scope.getUnderpassId())
+                .andIf(vmsId != null, " AND h.its_vms_id = :vmsId", "vmsId", vmsId)
+                .append("AUTO".equals(src) ? " AND h.changed_by IS NULL" : "MANUAL".equals(src) ? " AND h.changed_by IS NOT NULL" : "")
+                .andIf(period.startAt() != null, " AND h.changed_at >= :startAt", "startAt", period.startAt())
+                .andIf(period.endAtExclusive() != null, " AND h.changed_at < :endAt", "endAt", period.endAtExclusive());
+    }
+
+    /** COUNT(*) 결과 한 칸 */
+    public static class Total {
+        private long total;
+
+        public long getTotal() { return total; }
+        public void setTotal(long total) { this.total = total; }
     }
 
     // ─── 내부 헬퍼 ──────────────────────────────────────────────────

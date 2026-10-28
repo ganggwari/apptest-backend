@@ -17,8 +17,10 @@ import com.mbc.puf.common.response.ApiResponse;
 import com.mbc.puf.pm.dto.PmInternalEquipmentItem;
 import com.mbc.puf.pm.dto.PmScoreIngestRequest;
 import com.mbc.puf.pm.dto.PmScoreIngestResponse;
+import com.mbc.puf.pm.dto.PmSensorBackfillResponse;
 import com.mbc.puf.pm.dto.PmSensorSeriesResponse;
 import com.mbc.puf.pm.service.PmIngestService;
+import com.mbc.puf.pm.service.PmSensorBackfillService;
 import com.mbc.puf.pm.service.PmSensorService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -36,11 +38,13 @@ public class PmInternalController {
 
     private final PmIngestService pmIngestService;
     private final PmSensorService pmSensorService;
+    private final PmSensorBackfillService pmSensorBackfillService;
 
-    public PmInternalController(PmIngestService pmIngestService, PmSensorService pmSensorService) {
+    public PmInternalController(PmIngestService pmIngestService, PmSensorService pmSensorService,
+            PmSensorBackfillService pmSensorBackfillService) {
         this.pmIngestService = pmIngestService;
         this.pmSensorService = pmSensorService;
-
+        this.pmSensorBackfillService = pmSensorBackfillService;
     }
 
     @Operation(summary = "예지보전 설비 목록", description = "삭제되지 않은 지하차도의 삭제되지 않은 전체 설비. 이름·센서 주기(초)·센서 데이터 시작 시각을 함께 준다.")
@@ -63,6 +67,21 @@ public class PmInternalController {
             @RequestParam(name = "after", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime after,
             @RequestParam(name = "limit", required = false) Integer limit) {
         return ApiResponse.ok(pmSensorService.getSensorSeries(equipIds, from, to, bucketSec, after, limit));
+    }
+
+    @Operation(summary = "예지보전 센서 과거 데이터 채우기 (시연·개발용)",
+            description = "예지보전 설비마다 endAt(기본 지금)에서 weeks(기본 14)주 전부터 센서 주기대로 값을 만든다. "
+                    + "앞 normalWeeks(기본 4)주는 정상, 그 뒤는 설비 종류별 번호 순서대로 위험 악화 / 주의 악화 / 정상 유지 / 일시적 튐 시나리오가 들어간다. "
+                    + "기본은 센서 데이터가 아직 없는 설비만 채우고(이미 있으면 건너뜀), reset=true 면 지우고 다시 만든다. "
+                    + "equipIds 로 대상 설비를 고를 수 있다. 펌프(10초 간격)는 양이 많아 수십 초 걸린다.")
+    @PostMapping("/pm/sensor-backfill")
+    public ApiResponse<PmSensorBackfillResponse> sensorBackfill(
+            @RequestParam(name = "weeks", required = false) Integer weeks,
+            @RequestParam(name = "normalWeeks", required = false) Integer normalWeeks,
+            @RequestParam(name = "endAt", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endAt,
+            @RequestParam(name = "reset", defaultValue = "false") boolean reset,
+            @RequestParam(name = "equipIds", required = false) List<Long> equipIds) {
+        return ApiResponse.ok(pmSensorBackfillService.backfill(weeks, normalWeeks, endAt, reset, equipIds));
     }
 
     @Operation(summary = "예지보전 점수 수신 (묶음)", description = "점수를 저장하고 설비 임계치로 단계를 판정한다. 같은 설비·같은 시각은 건너뛴다. "

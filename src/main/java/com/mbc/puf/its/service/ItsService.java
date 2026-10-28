@@ -20,6 +20,9 @@ public interface ItsService {
     /** ITS 전광판 전체와 각 전광판의 현재 표출 페이지 */
     List<ItsVmsItem> getAllVms();
 
+    /** 지하차도에 연결된(반경 1km 안, vms_underpass) 전광판을 가까운 순으로. dist·zone 이 채워진다. 지하차도가 없으면 404 */
+    List<ItsVmsItem> getVmsByUnderpass(Long underpassId);
+
     /** 전광판 한 대와 현재 표출 페이지 (없으면 404) */
     ItsVmsItem getVms(Long vmsId);
 }

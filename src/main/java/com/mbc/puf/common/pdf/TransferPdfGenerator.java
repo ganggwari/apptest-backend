@@ -50,46 +50,43 @@ public class TransferPdfGenerator {
      * 시설·구분·사유·통제 방식·담당자·해제(또는 통제 시작) 정보를 한 장으로 정리한다.
      */
     public byte[] generatePolicePdf(ControlNoticeData d) {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        try (PdfDocument pdf = new PdfDocument(new PdfWriter(baos));
-             Document doc = new Document(pdf)) {
-
-            doc.setMargins(MARGIN, MARGIN, MARGIN, MARGIN);
-            PdfFont font = loadFont();
-
-            addTitle(doc, font, "도로 통제 정보 전달서");
-            addSubtitle(doc, font, "발송 대상: 관할 경찰서 교통과 · 관할 소방서 (시연: 실제 전송 없이 PDF 저장)");
-
-            Table table = new Table(UnitValue.createPercentArray(new float[]{2.2f, 7.8f}))
-                    .setWidth(UnitValue.createPercentValue(100))
-                    .setHorizontalAlignment(HorizontalAlignment.CENTER);
-
-            String eventLabel = d.blockEvent() ? "통제 시작" : "통제 해제";
-            addNoticeRow(table, font, "시설", orDash(d.underpassName())
-                    + (d.address() != null && !d.address().isBlank() ? " (" + d.address() + ")" : ""));
-            addNoticeRow(table, font, "구분", "[" + eventLabel + "]  " + fmt(d.eventAt()));
-            addNoticeRow(table, font, "사유", reasonLine(d));
-            if (d.reasonNote() != null && !d.reasonNote().isBlank()) {
-                addNoticeRow(table, font, "상세 사유", d.reasonNote());
-            }
-            addNoticeRow(table, font, "통제 방식", methodLine(d));
-            addNoticeRow(table, font, "담당자", managerLine(d));
-            if (d.blockEvent()) {
-                addNoticeRow(table, font, "해제 정보", "미해제 (해제 시 같은 형식으로 사유와 함께 전달)");
-            } else {
-                addNoticeRow(table, font, "통제 시작 정보", startInfoLine(d));
-            }
-            if (d.memo() != null && !d.memo().isBlank()) {
-                addNoticeRow(table, font, "비고", d.memo());
-            }
-            doc.add(table);
-
-            addFooterNote(doc, font);
-        } catch (Exception e) {
-            throw new RuntimeException("통제 정보 전달서 PDF 생성 실패", e);
-        }
-        return baos.toByteArray();
+        ByteArrayOutputStream out=new ByteArrayOutputStream();
+        try(PdfDocument pdf=new PdfDocument(new PdfWriter(out));Document doc=new Document(pdf)) {
+            doc.setMargins(50,45,65,45);PdfFont f=PdfVisuals.font();PdfVisuals.footer(pdf,f);
+            letterHead(doc,f,"도로 통제 정보 전달서",d.blockEvent()?"통제 시작":"통제 해제");
+            Table meta=PdfVisuals.table(1.5f,6);
+            meta(meta,f,"시행일자",fmt(d.eventAt()));
+            meta(meta,f,"수신","관할 경찰서장 · 관할 소방서장");
+            meta(meta,f,"제목",orDash(d.underpassName())+(d.blockEvent()?" 통제 시작 알림":" 통제 해제 알림"));doc.add(meta);
+            doc.add(PdfVisuals.p("아래와 같이 지하차도 통제 정보를 전달하오니 교통 관리 및 현장 대응 업무에 참고하여 주시기 바랍니다.",f,10).setMarginTop(18).setMarginBottom(20));
+            Table t=PdfVisuals.table(112,393);
+            formRow(t,f,"대상 시설",orDash(d.underpassName())+(d.address()==null?"":" / "+d.address()));
+            formRow(t,f,d.blockEvent()?"통제 일시":"해제 일시",fmt(d.eventAt()));
+            formRow(t,f,d.blockEvent()?"통제 사유":"해제 사유",orDash(d.reason()));
+            if(d.reasonNote()!=null&&!d.reasonNote().isBlank())formRow(t,f,"상세 사유",d.reasonNote());
+            String info="";
+            if(d.riskScore()!=null)info=String.format(java.util.Locale.ROOT,"위험도 %.1f점",d.riskScore());
+            if(d.rainfallMm()!=null)info+=(info.isBlank()?"":" / ")+String.format(java.util.Locale.ROOT,"강우량 %.1fmm",d.rainfallMm());
+            formRow(t,f,"관측 정보",orDash(info));formRow(t,f,"통제 조치",methodLine(d));
+            if(!d.blockEvent())formRow(t,f,"기존 통제",startInfoLine(d));
+            formRow(t,f,"담당자",managerLine(d));
+            if(d.memo()!=null&&!d.memo().isBlank())formRow(t,f,"비고",d.memo());
+            doc.add(t);signature(doc,f);
+        }catch(Exception e){throw new RuntimeException("통제 정보 전달서 PDF 생성 실패",e);}return out.toByteArray();
     }
+    private void letterHead(Document d,PdfFont f,String title,String sub){
+        d.add(PdfVisuals.p("PUF",f,18).setBorderBottom(new SolidBorder(PdfVisuals.INK,1)).setPaddingBottom(12).setMarginBottom(20));
+        d.add(PdfVisuals.p(title,f,22).setTextAlignment(TextAlignment.CENTER).setMarginBottom(6));
+        d.add(PdfVisuals.p(sub+" | PUF 지하차도 통합 관제",f,9).setFontColor(PdfVisuals.MUTED).setTextAlignment(TextAlignment.CENTER).setMarginBottom(20));
+    }
+    private void meta(Table t,PdfFont f,String label,String value){
+        t.addCell(new Cell().setBorder(Border.NO_BORDER).setPadding(6).add(PdfVisuals.p(label,f,10)));
+        t.addCell(new Cell().setBorder(Border.NO_BORDER).setPadding(6).add(PdfVisuals.p(value,f,10)));
+    }
+    private void formRow(Table t,PdfFont f,String label,String value){
+        t.addCell(PdfVisuals.cell(label,f,true).setPadding(9));t.addCell(PdfVisuals.cell(value,f,false).setPadding(9));
+    }
+    private void signature(Document d,PdfFont f){d.add(PdfVisuals.p("PUF 지하차도 통합 관제",f,13).setTextAlignment(TextAlignment.RIGHT).setMarginTop(20));}
 
     // 전달서 표의 한 행: 라벨 칸만 연회색, 내용 칸은 흰색
     private void addNoticeRow(Table table, PdfFont font, String label, String value) {
@@ -158,63 +155,21 @@ public class TransferPdfGenerator {
     /**
      * 소방 이관 PDF (잔류차량 목록)
      */
-    public byte[] generateFirePdf(
-            String underpassName, List<String> carNums,
-            String managerName, String managerRegion,
-            LocalDateTime transferAt, String memo) {
-
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        try (PdfDocument pdf = new PdfDocument(new PdfWriter(baos));
-             Document doc = new Document(pdf)) {
-
-            doc.setMargins(MARGIN, MARGIN, MARGIN, MARGIN);
-            PdfFont font = loadFont();
-
-            addTitle(doc, font, "소방서 잔류차량 구조 요청 보고서");
-            addSubtitle(doc, font, "지하차도 내 잔류차량 현황 이관");
-
-            Table infoTable = twoColTable();
-            addNoticeRow(infoTable, font, "지하차도", underpassName);
-            addNoticeRow(infoTable, font, "이관 일시", transferAt.format(DT_FMT));
-            addNoticeRow(infoTable, font, "잔류차량 수", carNums.size() + "대");
-            addNoticeRow(infoTable, font, "담당 관리자", managerName + " (" + managerRegion + ")");
-            addNoticeRow(infoTable, font, "비고", memo != null && !memo.isBlank() ? memo : "-");
-            doc.add(infoTable);
-
-            // 잔류차량 목록 헤더
-            doc.add(new Paragraph("\n").setFont(font).setFontSize(6));
-            doc.add(new Paragraph("■ 잔류차량 번호 목록")
-                    .setFont(font).setFontSize(12)
-                    .setFontColor(DARK));
-
-            Table carTable = new Table(UnitValue.createPercentArray(new float[]{1f, 9f}))
-                    .setWidth(UnitValue.createPercentValue(100))
-                    .setHorizontalAlignment(HorizontalAlignment.CENTER);
-
-            carTable.addHeaderCell(headerCell("No.", font));
-            carTable.addHeaderCell(headerCell("차량번호", font));
-
-            if (carNums.isEmpty()) {
-                Cell emptyCell = new Cell(1, 2)
-                        .add(new Paragraph("잔류차량 없음").setFont(font).setFontSize(10)
-                                .setTextAlignment(TextAlignment.CENTER).setFontColor(ColorConstants.GRAY))
-                        .setBorder(new SolidBorder(ColorConstants.LIGHT_GRAY, 0.5f))
-                        .setPadding(10f);
-                carTable.addCell(emptyCell);
-            } else {
-                for (int i = 0; i < carNums.size(); i++) {
-                    boolean alt = false;   // 내용 칸은 흰색 (전달서와 같은 스타일)
-                    carTable.addCell(dataCell(String.valueOf(i + 1), font, alt, TextAlignment.CENTER));
-                    carTable.addCell(dataCell(carNums.get(i), font, alt, TextAlignment.LEFT));
-                }
-            }
-            doc.add(carTable);
-
-            addFooterNote(doc, font);
-        } catch (Exception e) {
-            throw new RuntimeException("소방 이관 PDF 생성 실패", e);
-        }
-        return baos.toByteArray();
+    public byte[] generateFirePdf(String underpassName,List<String> carNums,String managerName,String managerRegion,LocalDateTime transferAt,String memo) {
+        ByteArrayOutputStream out=new ByteArrayOutputStream();
+        try(PdfDocument pdf=new PdfDocument(new PdfWriter(out));Document doc=new Document(pdf)) {
+            doc.setMargins(50,45,65,45);PdfFont f=PdfVisuals.font();PdfVisuals.footer(pdf,f);
+            letterHead(doc,f,"잔류차량 구조 요청서","잔류차량 이관");
+            Table meta=PdfVisuals.table(1.5f,6);meta(meta,f,"시행일자",fmt(transferAt));meta(meta,f,"수신","관할 소방서장");meta(meta,f,"제목",orDash(underpassName)+" 잔류차량 구조 요청");doc.add(meta);
+            doc.add(PdfVisuals.p("아래와 같이 지하차도 내 잔류차량 현황을 전달하오니 구조 업무에 참고하여 주시기 바랍니다.",f,10).setMarginTop(18).setMarginBottom(20));
+            List<String> cars=carNums==null?List.of():carNums;
+            Table info=PdfVisuals.table(112,393);formRow(info,f,"대상 시설",orDash(underpassName));formRow(info,f,"이관 일시",fmt(transferAt));formRow(info,f,"잔류차량","총 "+cars.size()+"대 / 차량번호 목록 아래 참조");formRow(info,f,"담당자",orDash(managerName)+" / "+orDash(managerRegion));
+            if(memo!=null&&!memo.isBlank())formRow(info,f,"비고",memo);doc.add(info);
+            PdfVisuals.section(doc,f,"붙임  잔류차량 번호 목록");Table list=PdfVisuals.table(1,5,3);
+            for(String h:new String[]{"연번","차량번호","확인 사항"})list.addHeaderCell(PdfVisuals.cell(h,f,true));
+            for(int i=0;i<cars.size();i++){list.addCell(PdfVisuals.cell(""+(i+1),f,false));list.addCell(PdfVisuals.cell(cars.get(i),f,false));list.addCell(PdfVisuals.cell("잔류 확인",f,false));}
+            if(cars.isEmpty())list.addCell(new Cell(1,3).add(PdfVisuals.p("잔류차량 없음",f,10)));doc.add(list);signature(doc,f);
+        }catch(Exception e){throw new RuntimeException("소방 이관 PDF 생성 실패",e);}return out.toByteArray();
     }
 
     // ---- 내부 헬퍼 ----

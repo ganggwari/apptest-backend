@@ -3,6 +3,7 @@ package com.mbc.puf.pm.dto;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+import com.mbc.puf.common.enums.PmActionKind;
 import com.mbc.puf.common.enums.PmEquipmentType;
 import com.mbc.puf.common.enums.PmLevel;
 
@@ -18,6 +19,7 @@ public class PmActionItem {
     private String underpassName;
     private Long regionId;
     private String content;              // 조치 내용
+    private PmActionKind kind;           // 기록 종류: START(점검 시작) / RECORD(기록 추가) / RESOLVED(조치 완료) / ETC(기타 종료)
     private Long managerId;
     private String managerName;          // 등록자 (직원 이름)
     private LocalDateTime createdAt;     // 조치 기록 시각
@@ -33,6 +35,12 @@ public class PmActionItem {
 
     /** name 과 같은 값 (프런트가 code 를 쓰던 때와 호환) */
     public String getCode() { return name; }
+
+    public PmActionKind getKind() { return kind; }
+    public void setKind(PmActionKind kind) { this.kind = kind; }
+
+    /** kind 의 한글 이름 (점검 시작 / 기록 추가 / 조치 완료 / 기타 종료) */
+    public String getKindLabel() { return kind == null ? null : kind.getLabel(); }
 
     public Long getActionId() { return actionId; }
     public void setActionId(Long actionId) { this.actionId = actionId; }

@@ -39,4 +39,16 @@ public interface PmScoreRepository extends JpaRepository<PmScore, Long> {
                               @Param("predictedAt") LocalDateTime predictedAt, @Param("level") String level,
                               @Param("reasons") String reasons, @Param("detail") String detail,
                               @Param("modelVersion") String modelVersion);
+    // Supplement display-only metadata on a replay without altering scores or creating events.
+    @Modifying
+    @Query(value = """
+        UPDATE pm_score
+           SET detail = jsonb_set(COALESCE(detail, '{}'::jsonb), '{extra}',
+               COALESCE(detail->'extra', '{}'::jsonb) || jsonb_build_object('sensors', CAST(:sensors AS jsonb)))
+         WHERE equip_id = :equipId AND predicted_at = :predictedAt
+           AND (detail->'extra'->'sensors' IS NULL OR detail->'extra'->'sensors' IN ('null'::jsonb, '[]'::jsonb))
+        """, nativeQuery = true)
+    int supplementSensors(@Param("equipId") Long equipId, @Param("predictedAt") LocalDateTime predictedAt,
+                          @Param("sensors") String sensors);
+
 }

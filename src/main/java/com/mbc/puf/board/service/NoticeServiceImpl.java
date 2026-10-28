@@ -58,11 +58,12 @@ public class NoticeServiceImpl implements NoticeService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<NoticeListItem> getNoticeList(String keyword, NoticeCategory category, Boolean important, int page, int size) {
+    public PageResponse<NoticeListItem> getNoticeList(String keyword, String authorName, NoticeCategory category, Boolean important, int page, int size) {
         PageParams pageParams = PageParams.of(page, size);
         QueryConditions c = new QueryConditions()
                 .add("n.deleted = false")
                 .containsIfPresent(keyword, "n.title", "n.content")   // 제목+내용 통합 검색
+                .containsIfPresent(authorName, "e.name")              // 작성 관리자 이름
                 .eqIfPresent("n.category", category)                  // null 이면 전체 분류
                 .eqIfPresent("n.important", important);               // null 이면 전체
 

@@ -1,14 +1,21 @@
 package com.mbc.puf.demo;
 
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import com.mbc.puf.common.exception.BusinessException;
 import com.mbc.puf.stream.StreamPublisher;
@@ -18,14 +25,20 @@ import com.mbc.puf.stream.StreamPublisher;
 @ConditionalOnProperty(name = "puf.demo.enabled", havingValue = "true")
 public class DemoScenarioService {
 
+    private static final Logger log = LoggerFactory.getLogger(DemoScenarioService.class);
+    private static final int REFILL_STEP_MIN = 5;
+
     private final DemoScenarioState state;
     private final JdbcTemplate jdbc;
     private final StreamPublisher streamPublisher;
+    private final TransactionTemplate tx;
 
-    public DemoScenarioService(DemoScenarioState state, JdbcTemplate jdbc, StreamPublisher streamPublisher) {
+    public DemoScenarioService(DemoScenarioState state, JdbcTemplate jdbc, StreamPublisher streamPublisher,
+            PlatformTransactionManager txManager) {
         this.state = state;
         this.jdbc = jdbc;
         this.streamPublisher = streamPublisher;
+        this.tx = new TransactionTemplate(txManager);
     }
 
     /** 삭제되지 않은 모든 지하차도 id */
@@ -72,11 +85,49 @@ public class DemoScenarioService {
     }
 
     public void finishNow() {
-        if (state.current() == null) {
+        DemoScenarioState.Run r = state.current();
+        if (r == null) {
             return;
         }
         state.end();
+        refillWithCalmRain(r);
         streamPublisher.dataChangedPublic(null, "demo-scenario", "UPDATE", null);
+    }
+
+    /**
+     * 시나리오 동안 쌓인 센 비 관측값을 지우고 같은 기간을 평상시 비(DemoCalmRain)로 다시 채운다.
+     * 침수모델이 직전 1~24시간 누적 강수량으로 점수를 내므로, 이걸 안 하면 비가 그친 뒤에도 점수·수위가 오래 남는다.
+     * 호우 시나리오 직후 점수가 뚝 떨어지는 것은 의도한 동작이다. 실패해도 시나리오 종료는 막지 않는다.
+     */
+    private void refillWithCalmRain(DemoScenarioState.Run r) {
+        try {
+            long elapsedMs = System.currentTimeMillis() - r.startedAtMillis();
+            Integer rows = tx.execute(status -> {
+                LocalDateTime now = jdbc.queryForObject("SELECT LOCALTIMESTAMP", Timestamp.class).toLocalDateTime();
+                LocalDateTime from = now.minusNanos(elapsedMs * 1_000_000L).minusMinutes(1).truncatedTo(ChronoUnit.MINUTES);
+                int total = 0;
+                for (Long areaId : r.areaIds()) {
+                    jdbc.update("DELETE FROM weather WHERE area_id = ? AND observed_at >= ?", areaId, Timestamp.valueOf(from));
+                    List<Object[]> batch = new ArrayList<>();
+                    for (LocalDateTime t = from; !t.isAfter(now); t = t.plusMinutes(REFILL_STEP_MIN)) {
+                        double rain = DemoCalmRain.rainPerObservation(areaId, t, REFILL_STEP_MIN);
+                        double p = Math.min(1, rain * 60.0 / REFILL_STEP_MIN / 20.0);
+                        double temp = 21 + (areaId % 4) + 2 * Math.sin(t.getHour() / 24.0 * 2 * Math.PI) - 2 * p;
+                        int humidity = (int) Math.min(95, 55 + (areaId % 10) + 25 * p);
+                        batch.add(new Object[] { areaId, Math.round(temp * 10) / 10.0, humidity,
+                                Math.round(rain * 100) / 100.0, Timestamp.valueOf(t) });
+                    }
+                    for (int n : jdbc.batchUpdate("INSERT INTO weather (area_id, temp, humidity, rain, observed_at) "
+                            + "VALUES (?,?,?,?,?) ON CONFLICT DO NOTHING", batch)) {
+                        total += Math.max(n, 0);
+                    }
+                }
+                return total;
+            });
+            log.info("[demo] 시나리오 종료: 날씨 {}곳을 평상시 비로 다시 채움 ({}행)", r.areaIds().size(), rows);
+        } catch (RuntimeException e) {
+            log.warn("[demo] 시나리오 종료 날씨 되돌리기 실패: {}", e.toString());
+        }
     }
 
     public DemoScenarioDtos.Status status() {

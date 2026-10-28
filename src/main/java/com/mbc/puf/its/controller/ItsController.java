@@ -47,10 +47,11 @@ public class ItsController {
 
     @Operation(summary = "ITS 전광판 전체 + 현재 표출 페이지",
             description = "더미 전광판도 똑같이 내려간다(dummy=true). 표출할 내용이 없으면 pages 에 기본 문구 1장(defaultPage=true). "
-                    + "페이지 content 는 줄바꿈(\\n)으로 줄이 나뉘고 lines 로도 내려간다. color 는 RED/YELLOW/GREEN.")
+                    + "페이지 content 는 줄바꿈(\\n)으로 줄이 나뉘고 lines 로도 내려간다. color 는 RED/YELLOW/GREEN. "
+                    + "underpassId 를 주면 그 지하차도에 연결된(1km 안) 전광판만 가까운 순으로, dist(m)·zone(NEAR 근접 / FAR 원거리)이 같이 내려간다.")
     @GetMapping("/api/its-vms")
-    public ApiResponse<List<ItsVmsItem>> vmsList() {
-        return ApiResponse.ok(itsService.getAllVms());
+    public ApiResponse<List<ItsVmsItem>> vmsList(@RequestParam(name = "underpassId", required = false) Long underpassId) {
+        return ApiResponse.ok(underpassId == null ? itsService.getAllVms() : itsService.getVmsByUnderpass(underpassId));
     }
 
     @Operation(summary = "ITS 전광판 한 대 + 현재 표출 페이지")

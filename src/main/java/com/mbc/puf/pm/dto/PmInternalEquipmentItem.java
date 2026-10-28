@@ -14,8 +14,16 @@ public class PmInternalEquipmentItem {
     private final LocalDateTime dataStartedAt;  // 센서 데이터가 시작된 시각 (아직 없으면 null)
     private final LocalDateTime lastSensorAt;   // 센서 데이터의 마지막 측정 시각 (아직 없으면 null). 예지보전 서버가 이 시각 기준으로 최근 창을 잘라 간다
 
+    private final LocalDateTime lastScoreAt;    // 점수 이력이 이미 있으면 자동 점수 백필 생략
+
     public PmInternalEquipmentItem(Long equipId, String name, String type, Long underpassId, String underpassName,
             Integer sensorIntervalSec, LocalDateTime dataStartedAt, LocalDateTime lastSensorAt) {
+        this(equipId, name, type, underpassId, underpassName, sensorIntervalSec, dataStartedAt, lastSensorAt, null);
+    }
+
+    public PmInternalEquipmentItem(Long equipId, String name, String type, Long underpassId, String underpassName,
+            Integer sensorIntervalSec, LocalDateTime dataStartedAt, LocalDateTime lastSensorAt, LocalDateTime lastScoreAt) {
+        this.lastScoreAt = lastScoreAt;
         this.equipId = equipId;
         this.name = name;
         this.type = type;
@@ -25,6 +33,8 @@ public class PmInternalEquipmentItem {
         this.dataStartedAt = dataStartedAt;
         this.lastSensorAt = lastSensorAt;
     }
+
+    public LocalDateTime getLastScoreAt() { return lastScoreAt; }
 
     public Long getEquipId() {
         return equipId;

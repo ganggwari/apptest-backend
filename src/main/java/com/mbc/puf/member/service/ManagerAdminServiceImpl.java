@@ -43,15 +43,17 @@ public class ManagerAdminServiceImpl implements ManagerAdminService {
     private final RegionRepository regionRepository;
     private final ShiftRepository shiftRepository;
     private final EntityManager em;
+    private final com.mbc.puf.stream.StreamPublisher stream;
 
     public ManagerAdminServiceImpl(ManagerRepository managerRepository, ManagerRegionRepository managerRegionRepository,
                                    RegionRepository regionRepository, ShiftRepository shiftRepository,
-                                   EntityManager em) {
+                                   EntityManager em, com.mbc.puf.stream.StreamPublisher stream) {
         this.managerRepository = managerRepository;
         this.managerRegionRepository = managerRegionRepository;
         this.regionRepository = regionRepository;
         this.shiftRepository = shiftRepository;
         this.em = em;
+        this.stream = stream;
     }
 
     // ==================== 목록 ====================
@@ -114,6 +116,7 @@ public class ManagerAdminServiceImpl implements ManagerAdminService {
         managerRegionRepository.deleteByManagerId(managerId);
         managerRegionRepository.saveAll(distinct.stream().map(rid -> new ManagerRegion(managerId, rid)).toList());
         managerRegionRepository.flush();
+        assignmentChanged(managerId, "REGIONS");
         return getSummary(managerId);
     }
 
@@ -126,7 +129,13 @@ public class ManagerAdminServiceImpl implements ManagerAdminService {
         }
         manager.setShiftId(shiftId);
         em.flush();
+        assignmentChanged(managerId, "SHIFT");
         return getSummary(managerId);
+    }
+
+    private void assignmentChanged(Long managerId, String changed) {
+        stream.publishToManager(managerId, "manager-assignment-change",
+                new com.mbc.puf.stream.RealtimePayloads.ManagerAssignmentChange(managerId, changed));
     }
 
     @Override

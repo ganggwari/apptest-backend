@@ -6,6 +6,9 @@ import java.util.List;
 
 /** 이관 기록 목록 아이템 */
 public class CtrlTransferItem {
+    private String documentType;
+    public String getDocumentType() { return documentType; }
+    public void setDocumentType(String value) { documentType = value; }
     private Long id;
     private Long eventId;
     private TransferAgency agency;

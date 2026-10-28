@@ -13,7 +13,7 @@ import java.util.List;
 public interface FaqService {
 
     // 목록 (질문+답변 검색, 페이징). keyword는 null 가능
-    PageResponse<FaqListItem> getFaqList(String keyword, FaqCategory category, int page, int size);
+    PageResponse<FaqListItem> getFaqList(String keyword, String authorName, FaqCategory category, int page, int size);
 
     // 자주 보는 질문: 조회수 높은 순 상위 limit 개 (1~20, 기본 5)
     List<FaqListItem> getPopularFaqs(int limit);

@@ -296,6 +296,22 @@ public class VmsDisplayServiceImpl implements VmsDisplayService {
         return rows.isEmpty() ? null : ((String) rows.get(0)).replace("\n", " ");
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public String previewBlockText(Long underpassId) {
+        List<?> rows = em.createNativeQuery("SELECT u.name, v.spec, vu.dist FROM vms_underpass vu"
+                        + " JOIN underpass u ON u.id = vu.underpass_id JOIN its_vms v ON v.id = vu.its_vms_id"
+                        + " WHERE vu.underpass_id = :u ORDER BY vu.dist, vu.its_vms_id")
+                .setParameter("u", underpassId).setMaxResults(1).getResultList();
+        if (rows.isEmpty()) {
+            return null;
+        }
+        Object[] r = (Object[]) rows.get(0);
+        String content = VmsTextBuilder.build((String) r[0], (String) r[1], VmsTextBuilder.Kind.BLOCK,
+                ((Number) r[2]).intValue() <= nearM);
+        return content == null ? null : content.replace("\n", " ");
+    }
+
     // ───────────────────────── 보조 ─────────────────────────
 
     private static LocalDateTime toLocalDateTime(Object value) {

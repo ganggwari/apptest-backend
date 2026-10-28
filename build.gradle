@@ -28,9 +28,6 @@ dependencies {
     // Web (Boot 4: starter-web → starter-webmvc / 내장 Tomcat, Jackson 포함)
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
 
-    // WebSocket (내비게이션 실시간 위험 알림 /ws/navigation)
-    implementation 'org.springframework.boot:spring-boot-starter-websocket'
-
     // @Valid, @NotBlank 등 입력값 검증
     implementation 'org.springframework.boot:spring-boot-starter-validation'
 

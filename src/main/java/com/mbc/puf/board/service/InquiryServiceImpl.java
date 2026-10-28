@@ -86,6 +86,7 @@ public class InquiryServiceImpl implements InquiryService {
         inquiry.setTitle(request.getTitle().trim());
         inquiry.setContent(request.getContent());
         inquiryRepository.flush();
+        publishInquiryChanged(inquiry, "UPDATE");
         return toDetail(inquiry);
     }
 
@@ -96,13 +97,14 @@ public class InquiryServiceImpl implements InquiryService {
         inquiry.setDeleted(true);
         // 답변도 같이 지운다 (관리자 화면에서도 함께 사라짐)
         inquiryRepository.findByParentIdAndDeletedFalse(id).ifPresent(reply -> reply.setDeleted(true));
+        publishInquiryChanged(inquiry, "DELETE");
     }
 
     // ---- 관리자용 ----
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<InquiryListItem> getInquiryListForAdmin(String keyword, InquiryStatus status,
+    public PageResponse<InquiryListItem> getInquiryListForAdmin(String keyword, String customerName, InquiryStatus status,
                                                                  PeriodQuery period, int page, int size) {
         // 항상 원글(parent_id IS NULL)만, 상태/키워드/작성일 기간은 선택
         QueryConditions c = new QueryConditions()
@@ -110,6 +112,7 @@ public class InquiryServiceImpl implements InquiryService {
                 .add("o.deleted = false")
                 .eqIfPresent("o.status", status)
                 .containsIfPresent(keyword, "o.title", "o.content")
+                .containsIfPresent(customerName, "c.name")   // 문의한 고객 이름
                 .periodIfPresent("o.createdAt", period);
         return fetchList(c, PageParams.of(page, size));
     }

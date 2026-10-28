@@ -52,7 +52,7 @@ public class PmStaleServiceImpl implements PmStaleService {
                        END AS last_at
                   FROM pm_equipment e
                   JOIN underpass u ON u.id = e.underpass_id AND u.is_deleted = FALSE
-                 WHERE e.is_deleted = FALSE AND e.data_started_at IS NOT NULL
+                 WHERE e.is_deleted = FALSE AND e.data_started_at IS NOT NULL AND CAST(e.type AS text) <> 'ROAD'
                    %s
               ) q
              WHERE q.last_at IS NOT NULL
@@ -147,6 +147,7 @@ public class PmStaleServiceImpl implements PmStaleService {
 
     private static String typeKo(PmEquipmentType type) {
         return switch (type) {
+            case ROAD -> "노면";
             case CCTV -> "CCTV";
             case DISPLAY -> "전광판";
             case PUMP -> "배수펌프";

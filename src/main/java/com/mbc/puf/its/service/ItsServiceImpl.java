@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,9 +24,13 @@ public class ItsServiceImpl implements ItsService {
     private final EntityManager em;
     private final VmsDisplayService vmsDisplayService;
 
-    public ItsServiceImpl(EntityManager em, VmsDisplayService vmsDisplayService) {
+    private final double nearM;   // 이 거리 이하는 근접 전광판
+
+    public ItsServiceImpl(EntityManager em, VmsDisplayService vmsDisplayService,
+                          @Value("${puf.display.near-m:300}") double nearM) {
         this.em = em;
         this.vmsDisplayService = vmsDisplayService;
+        this.nearM = nearM;
     }
 
     // ─── CCTV ────────────────────────────────────────────────────────
@@ -116,13 +121,42 @@ public class ItsServiceImpl implements ItsService {
         return vms((Object[]) rows.get(0), vmsDisplayService.pagesOf(List.of(vmsId)));
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<ItsVmsItem> getVmsByUnderpass(Long underpassId) {
+        Number exists = (Number) em.createNativeQuery("SELECT COUNT(*) FROM underpass WHERE id = :id AND is_deleted = FALSE")
+                .setParameter("id", underpassId).getSingleResult();
+        if (exists.longValue() == 0) {
+            throw new BusinessException(HttpStatus.NOT_FOUND, "지하차도를 찾을 수 없습니다. underpassId=" + underpassId);
+        }
+        List<?> rows = em.createNativeQuery("SELECT v.id, v.its_no, v.spec, v.name, v.lat, v.lng, v.is_dummy, vu.dist"
+                + " FROM vms_underpass vu JOIN its_vms v ON v.id = vu.its_vms_id"
+                + " WHERE vu.underpass_id = :id ORDER BY vu.dist, v.id").setParameter("id", underpassId).getResultList();
+        List<Long> ids = new ArrayList<>(rows.size());
+        for (Object row : rows) {
+            ids.add(((Number) ((Object[]) row)[0]).longValue());
+        }
+        Map<Long, List<VmsPageItem>> pages = ids.isEmpty() ? Map.of() : vmsDisplayService.pagesOf(ids);
+        List<ItsVmsItem> list = new ArrayList<>(rows.size());
+        for (Object row : rows) {
+            Object[] r = (Object[]) row;
+            int dist = ((Number) r[7]).intValue();
+            list.add(vms(r, pages, dist, dist <= nearM ? "NEAR" : "FAR"));
+        }
+        return list;
+    }
+
     private ItsVmsItem vms(Object[] r, Map<Long, List<VmsPageItem>> pages) {
+        return vms(r, pages, null, null);
+    }
+
+    private ItsVmsItem vms(Object[] r, Map<Long, List<VmsPageItem>> pages, Integer dist, String zone) {
         Long id = ((Number) r[0]).longValue();
         List<VmsPageItem> list = pages.get(id);
         if (list == null || list.isEmpty()) {
             list = List.of(vmsDisplayService.defaultPage(id));
         }
         return new ItsVmsItem(id, r[1] == null ? null : ((Number) r[1]).intValue(), (String) r[2], (String) r[3],
-                ((Number) r[4]).doubleValue(), ((Number) r[5]).doubleValue(), Boolean.TRUE.equals(r[6]), list);
+                ((Number) r[4]).doubleValue(), ((Number) r[5]).doubleValue(), Boolean.TRUE.equals(r[6]), list, dist, zone);
     }
 }

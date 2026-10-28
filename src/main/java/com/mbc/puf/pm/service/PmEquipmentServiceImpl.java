@@ -123,6 +123,13 @@ public class PmEquipmentServiceImpl implements PmEquipmentService {
         equipment.setInstalledAt(request.getInstalledAt());
         equipment = equipmentRepository.saveAndFlush(equipment);
 
+        // 노면은 고장 위험 점수를 계산하지 않는다.
+        if (type == PmEquipmentType.ROAD) {
+            streamPublisher.dataChangedToAdmins(regionId, "pm-equipment", "CREATE", equipment.getId());
+            return new PmEquipmentCreateResponse(equipment.getId(), equipment.getName(), type, request.getUnderpassId(),
+                    underpassName, null, null, equipment.getInstalledAt(), null, null, null);
+        }
+
         // 4) 기본 단계 기준 3행 + 최초 이력(변경 전 값 없음)
         LocalDateTime now = dbClock.now();
         createThreshold(equipment.getId(), PmLevel.SAFE, DEFAULT_SAFE, loginUser.id(), now);

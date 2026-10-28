@@ -95,4 +95,20 @@ public class CctvController {
     public ApiResponse<JsonNode> stopPlate(@AuthenticationPrincipal LoginUser loginUser, @RequestParam("cameraId") Long cameraId) {
         return ApiResponse.ok(cctvService.stopPlate(loginUser, cameraId));
     }
+
+    @GetMapping("/analysis/state")
+    public ApiResponse<JsonNode> analysisState(@AuthenticationPrincipal LoginUser user,
+            @RequestParam("cameraId") Long cameraId) {
+        return ApiResponse.ok(cctvService.analysisState(user, cameraId));
+    }
+    @PostMapping("/analysis/start")
+    public ApiResponse<JsonNode> startAnalysis(@AuthenticationPrincipal LoginUser user,
+            @RequestParam("cameraId") Long cameraId) {
+        return ApiResponse.ok(cctvService.startPlate(user, cameraId));
+    }
+    @PostMapping("/analysis/stop")
+    public ApiResponse<JsonNode> stopAnalysis(@AuthenticationPrincipal LoginUser user,
+            @RequestParam("cameraId") Long cameraId) {
+        return ApiResponse.ok(cctvService.stopPlate(user, cameraId));
+    }
 }

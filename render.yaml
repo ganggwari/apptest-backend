@@ -14,7 +14,6 @@ services:
       - {key: PUF_OCR_MODE, value: stub}
       - {key: PUF_DEMO_ENABLED, value: "true"}
       - {key: PUF_CORS_ALLOWED_ORIGINS, value: "https://apptest-front.onrender.com"}
-      - {key: PUF_NAVIGATION_WS_ALLOWED_ORIGINS, value: "https://apptest-front.onrender.com"}
       - {key: SERVER_SERVLET_SESSION_COOKIE_SECURE, value: "true"}
       - {key: SERVER_SERVLET_SESSION_COOKIE_SAME_SITE, value: none}
       - {key: SECRET_KAKAO_REST_KEY, sync: false}
@@ -27,3 +26,7 @@ services:
       - {key: SECRET_FCM_WEB_SENDER_ID, sync: false}
       - {key: SECRET_FCM_WEB_APP_ID, sync: false}
       - {key: SECRET_FCM_WEB_VAPID_KEY, sync: false}
+      - {key: PUF_PM_BACKFILL_ON_STARTUP, value: "false"}
+      - {key: PUF_PM_SENSOR_STUB_ENABLED, value: "false"}
+      - {key: SECRET_GEMINI_API_KEY, sync: false}
+      - {key: PUF_GEMINI_MODEL, value: gemini-3.5-flash-lite}

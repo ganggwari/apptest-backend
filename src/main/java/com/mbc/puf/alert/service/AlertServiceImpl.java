@@ -9,7 +9,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.mbc.puf.alert.dto.AlertLogListItem;
 import com.mbc.puf.alert.dto.MyAlertItem;
 import com.mbc.puf.alert.entity.Alert;
 import com.mbc.puf.alert.entity.AlertDelivery;
@@ -36,8 +35,6 @@ import com.mbc.puf.common.query.PagedQuery;
 import com.mbc.puf.common.query.QueryConditions;
 import com.mbc.puf.common.request.PageQuery;
 import com.mbc.puf.common.request.PeriodQuery;
-import com.mbc.puf.common.request.ScopeQuery;
-import com.mbc.puf.common.request.VehicleQuery;
 import com.mbc.puf.common.response.PageResponse;
 import com.mbc.puf.common.security.LoginUser;
 import com.mbc.puf.common.security.ScopeResolver;
@@ -53,11 +50,6 @@ public class AlertServiceImpl implements AlertService {
     // 관리자 목록: 계기 이벤트(지하차도) + 지역 범위 조건을 위해 underpass 까지 조인
     private static final String ADMIN_FROM = " from Alert a join UnderpassEvent ue on ue.id = a.eventId"
             + " join Underpass u on u.id = ue.underpassId";
-
-    // 푸시가 한 번이라도 도착한 알림인지 확인하는 조건 (미수신 모아보기용)
-    private static final String PUSH_SUCCESS_SUBQUERY = " (select 1 from AlertDelivery d where d.alertId = a.id"
-            + " and d.channel in (com.mbc.puf.common.enums.AlertChannel.PUSH_WEB, com.mbc.puf.common.enums.AlertChannel.PUSH_APP)"
-            + " and d.status = com.mbc.puf.common.enums.DeliveryStatus.SUCCESS)";
 
     // 고객 "내 알림": 지하차도 이름 + 수신 전화번호까지
     private static final String MY_FROM = ADMIN_FROM + " join Customer c on c.id = a.customerId";
@@ -196,59 +188,6 @@ public class AlertServiceImpl implements AlertService {
         d.setTokenId(tokenId);   // SMS면 null
         d.setStatus(status);
         deliveryRepository.save(d);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public PageResponse<AlertLogListItem> getAlertLogs(LoginUser loginUser, ScopeQuery scope, Long customerId,
-                                                       AlertType alertType, Boolean received,
-                                                       VehicleQuery vehicle, PeriodQuery period, PageQuery page) {
-        // REGIONAL_ADMIN은 본인 담당 지역 시설에서 나간 알림만 (Scope 공통 규칙)
-        ScopeQuery resolved = scopeResolver.resolve(loginUser, scope);
-        QueryConditions c = new QueryConditions()
-                .eqIfPresent("ue.underpassId", resolved.getUnderpassId())
-                .inIfPresent("u.regionId", resolved.getRegionIds())
-                .eqIfPresent("a.customerId", customerId)
-                .eqIfPresent("a.alertType", alertType)
-                .carNumIfPresent(vehicle.getCarNum(), "a.carNum")
-                .periodIfPresent("a.sentAt", period);
-        if (received != null) {
-            // 받음 = 푸시 채널에 SUCCESS 가 하나라도 있음 (문자는 아직 실발송이 없어 기준에서 뺀다)
-            c.add((received ? "exists" : "not exists") + PUSH_SUCCESS_SUBQUERY);
-        }
-
-        PageResponse<AlertLogListItem> result = PagedQuery.fetch(em, "select a, ue.underpassId" + ADMIN_FROM,
-                "select count(a)" + ADMIN_FROM, c,
-                " order by a.sentAt desc, a.id desc", Object[].class, row -> {
-                    Alert a = (Alert) row[0];
-                    return new AlertLogListItem(a.getId(), a.getEventId(), (Long) row[1], a.getCustomerId(),
-                            a.getCarId(), a.getCarNum(), a.getAlertType(), a.getSentAt());
-                }, page.toParams());
-        return withPushStatus(result);
-    }
-
-    // 이 페이지 알림들의 푸시 결과를 한 번에 붙인다 (알림마다 조회하지 않게 모아서)
-    private PageResponse<AlertLogListItem> withPushStatus(PageResponse<AlertLogListItem> page) {
-        if (page.getItems().isEmpty()) {
-            return page;
-        }
-        List<Long> ids = page.getItems().stream().map(AlertLogListItem::getId).toList();
-        Map<Long, java.util.Set<DeliveryStatus>> byAlert = new java.util.HashMap<>();
-        for (Object[] row : em.createQuery("select d.alertId, d.status from AlertDelivery d where d.alertId in :ids"
-                        + " and d.channel in (com.mbc.puf.common.enums.AlertChannel.PUSH_WEB,"
-                        + " com.mbc.puf.common.enums.AlertChannel.PUSH_APP)", Object[].class)
-                .setParameter("ids", ids).getResultList()) {
-            byAlert.computeIfAbsent((Long) row[0], k -> java.util.EnumSet.noneOf(DeliveryStatus.class))
-                    .add((DeliveryStatus) row[1]);
-        }
-        List<AlertLogListItem> items = page.getItems().stream().map(item -> {
-            java.util.Set<DeliveryStatus> s = byAlert.get(item.getId());
-            String status = s == null ? "NO_PUSH"
-                    : s.contains(DeliveryStatus.SUCCESS) ? "SUCCESS"
-                    : s.contains(DeliveryStatus.PENDING) ? "PENDING" : "FAIL";
-            return item.withPushStatus(status);
-        }).toList();
-        return new PageResponse<>(items, page.getPage(), page.getSize(), page.getTotalItems());
     }
 
     @Override

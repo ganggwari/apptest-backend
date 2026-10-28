@@ -17,6 +17,7 @@ public interface PmEquipmentRepository extends JpaRepository<PmEquipment, Long> 
         Integer getSensorIntervalSec();
         java.time.LocalDateTime getDataStartedAt();
         java.time.LocalDateTime getLastSensorAt();   // 센서 테이블의 마지막 측정 시각 (없으면 null)
+        java.time.LocalDateTime getLastScoreAt(); // 자동 점수 백필 중복 계산 방지
         Long getUnderpassId();
         String getUnderpassName();
         Long getRegionId();
@@ -27,6 +28,7 @@ public interface PmEquipmentRepository extends JpaRepository<PmEquipment, Long> 
         SELECT e.id AS equipId, CAST(e.type AS text) AS type, e.name AS name, u.id AS underpassId, u.name AS underpassName,
                u.region_id AS regionId,
                e.sensor_interval_sec AS sensorIntervalSec, e.data_started_at AS dataStartedAt,
+               (SELECT MAX(ps.predicted_at) FROM pm_score ps WHERE ps.equip_id = e.id) AS lastScoreAt,
                (CASE CAST(e.type AS text)
                  WHEN 'PUMP' THEN (SELECT MAX(s.recorded_at) FROM pm_sensor_pump s WHERE s.equip_id = e.id)
                  WHEN 'CCTV' THEN (SELECT MAX(s.recorded_at) FROM pm_sensor_cctv s WHERE s.equip_id = e.id)
@@ -45,6 +47,7 @@ public interface PmEquipmentRepository extends JpaRepository<PmEquipment, Long> 
         SELECT e.id AS equipId, CAST(e.type AS text) AS type, e.name AS name, u.id AS underpassId, u.name AS underpassName,
                u.region_id AS regionId,
                e.sensor_interval_sec AS sensorIntervalSec, e.data_started_at AS dataStartedAt,
+               (SELECT MAX(ps.predicted_at) FROM pm_score ps WHERE ps.equip_id = e.id) AS lastScoreAt,
                (CASE CAST(e.type AS text)
                  WHEN 'PUMP' THEN (SELECT MAX(s.recorded_at) FROM pm_sensor_pump s WHERE s.equip_id = e.id)
                  WHEN 'CCTV' THEN (SELECT MAX(s.recorded_at) FROM pm_sensor_cctv s WHERE s.equip_id = e.id)

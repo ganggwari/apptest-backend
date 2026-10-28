@@ -3,6 +3,11 @@ package com.mbc.puf.display.controller;
 import com.mbc.puf.common.enums.DisplayCategory;
 import com.mbc.puf.common.response.ApiResponse;
 import com.mbc.puf.common.security.LoginUser;
+import com.mbc.puf.common.request.PageQuery;
+import com.mbc.puf.common.request.PeriodQuery;
+import com.mbc.puf.common.request.ScopeQuery;
+import com.mbc.puf.common.response.PageResponse;
+import com.mbc.puf.display.dto.DisplayHistoryItem;
 import com.mbc.puf.display.dto.VmsPageItem;
 import com.mbc.puf.display.dto.DisplayPageSaveRequest;
 import com.mbc.puf.display.dto.DisplayPresetItem;
@@ -12,8 +17,10 @@ import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -48,6 +55,30 @@ public class DisplayController {
     public ResponseEntity<ApiResponse<List<DisplayPresetItem>>> getPresets(
             @RequestParam(name = "category", required = false) DisplayCategory category) {
         return ResponseEntity.ok(ApiResponse.ok("전광판 프리셋 목록입니다.", displayService.getPresets(category)));
+    }
+
+    // ── 변경 이력 ──────────────────────────────────────────────────
+
+    /**
+     * GET /api/display/history
+     * 전광판 문구 변경 이력 (자동 표출·수동 수정 모두). 내 담당 지역 지하차도가 원인인 것만.
+     */
+    @Operation(summary = "전광판 문구 변경 이력",
+            description = "최근 순. vmsId(전광판), regionId·underpassId(원인 지하차도), source(AUTO 자동 / MANUAL 수동), managerName(변경한 직원 이름, 부분일치), "
+                    + "startDate~endDate(변경 시각 기준, endDate 당일 포함), page·size. 담당 지역 밖은 자동으로 제외된다. 페이지 삭제는 이력에 남지 않는다.")
+    @GetMapping("/history")
+    @PreAuthorize("isAuthenticated() and principal.manager")
+    public ResponseEntity<ApiResponse<PageResponse<DisplayHistoryItem>>> getHistory(
+            @AuthenticationPrincipal LoginUser loginUser,
+            @ModelAttribute ScopeQuery scope,
+            @RequestParam(name = "vmsId", required = false) Long vmsId,
+            @RequestParam(name = "source", required = false) String source,
+            @RequestParam(name = "managerName", required = false) String managerName,
+            @ModelAttribute PeriodQuery period,
+            @ModelAttribute PageQuery page) {
+        period.validate();
+        return ResponseEntity.ok(ApiResponse.ok("전광판 문구 변경 이력입니다.",
+                displayService.getHistory(loginUser, scope, vmsId, source, managerName, period, page)));
     }
 
     // ── 페이지 목록 ────────────────────────────────────────────────

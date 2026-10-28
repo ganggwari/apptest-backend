@@ -10,7 +10,7 @@ import com.mbc.puf.common.response.PageResponse;
 public interface NoticeService {
 
     // 목록 (제목+내용 검색, 분류·중요공지 필터, 페이징). keyword/category/important 는 null 가능
-    PageResponse<NoticeListItem> getNoticeList(String keyword, NoticeCategory category, Boolean important, int page, int size);
+    PageResponse<NoticeListItem> getNoticeList(String keyword, String authorName, NoticeCategory category, Boolean important, int page, int size);
 
     // 상세. countView 가 true 일 때만 조회수를 1 올린다 (컨트롤러가 쿠키로 "처음 보는 글인지" 판단해서 넘긴다)
     NoticeDetailResponse getNotice(Long id, boolean countView);

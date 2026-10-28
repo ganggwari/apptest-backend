@@ -107,6 +107,7 @@ public class PmSensorServiceImpl implements PmSensorService {
 
         // 삭제되지 않은 장비만 (없거나 삭제된 장비는 unknownEquipIds 로 알려 준다)
         Map<Long, EquipmentRow> found = equipmentRepository.findRowsByIds(ids).stream()
+                .filter(r -> !"ROAD".equals(r.getType()))
                 .collect(Collectors.toMap(EquipmentRow::getEquipId, r -> r));
         List<Long> unknown = ids.stream().filter(id -> !found.containsKey(id)).sorted().toList();
 

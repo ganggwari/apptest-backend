@@ -5,8 +5,12 @@ import java.time.LocalDateTime;
 import org.hibernate.annotations.Generated;
 import org.hibernate.generator.EventType;
 
+import com.mbc.puf.common.enums.PmActionKind;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -31,6 +35,10 @@ public class PmAction {
     @Column(name = "manager_id")
     private Long managerId;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "kind")
+    private PmActionKind kind = PmActionKind.RECORD;   // 점검 시작 / 기록 추가 / 조치 완료 / 기타 종료
+
     @Generated(event = EventType.INSERT)
     @Column(name = "created_at", insertable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -45,6 +53,9 @@ public class PmAction {
 
     public String getContent() { return content; }
     public void setContent(String content) { this.content = content; }
+
+    public PmActionKind getKind() { return kind; }
+    public void setKind(PmActionKind kind) { this.kind = kind; }
 
     public Long getManagerId() { return managerId; }
     public void setManagerId(Long managerId) { this.managerId = managerId; }

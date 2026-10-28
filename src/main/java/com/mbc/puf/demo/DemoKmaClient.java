@@ -7,6 +7,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
@@ -15,7 +16,8 @@ import com.mbc.puf.weather.entity.WeatherArea;
 import com.mbc.puf.weather.service.KmaClient;
 
 /**
- * 기상청 API 흉내 (시연 전용). 평소에는 잔잔한 날씨를, 호우 시나리오 중인 지역에는 시나리오 곡선대로 센 비를 준다.
+ * 기상청 API 흉내 (시연 전용). 평소에는 이슬비와 간간이 지나가는 소나기(DemoCalmRain)를,
+ * 호우 시나리오 중인 지역에는 시나리오 곡선대로 센 비를 준다. puf.demo.calm-rain.enabled=false 면 예전처럼 비 없는 잔잔한 날씨.
  * 실제 기상청 연동을 붙일 때는 이 클래스 대신 실제 KmaClient 구현을 쓰면 된다.
  */
 @Component
@@ -27,10 +29,16 @@ public class DemoKmaClient implements KmaClient {
 
     private final DemoScenarioState state;
     private final DbClock dbClock;
+    private final boolean calmRain;
+    private final int calmObsMinutes;     // 평상시 관측 한 건이 나타내는 시간(분) = 평상시 관측 저장 주기
 
-    public DemoKmaClient(DemoScenarioState state, DbClock dbClock) {
+    public DemoKmaClient(DemoScenarioState state, DbClock dbClock,
+                         @Value("${puf.demo.calm-rain.enabled:true}") boolean calmRain,
+                         @Value("${puf.demo.calm-score-minutes:5}") int calmScoreMinutes) {
         this.state = state;
         this.dbClock = dbClock;
+        this.calmRain = calmRain;
+        this.calmObsMinutes = Math.max(1, calmScoreMinutes);
     }
 
     private static BigDecimal dec(double v, int scale) {
@@ -45,6 +53,12 @@ public class DemoKmaClient implements KmaClient {
         int humidity = 55 + (int) (id % 10);
         double rain = 0;
 
+        if (calmRain) {
+            rain = DemoCalmRain.rainPerObservation(id, now, calmObsMinutes);
+            double p = Math.min(1, rain * 60.0 / calmObsMinutes / 20.0);
+            temp -= 2 * p;
+            humidity = (int) Math.min(95, humidity + 25 * p);
+        }
         if (state.isAreaActive(area.getId())) {
             double t = state.scenarioSec();
             double factor = 0.9 + (id % 5) * 0.05;
@@ -69,10 +83,15 @@ public class DemoKmaClient implements KmaClient {
             LocalDateTime target = base.plusHours(h);
             double temp = 21 + (id % 4) + 3 * Math.sin((target.getHour() - 9) / 24.0 * 2 * Math.PI);
             int humidity = 55 + (int) ((id + h) % 12);
-            double rain = active ? state.forecastShape(h) * scale : 0;
+            double rain = active ? state.forecastShape(h) * scale : (calmRain ? DemoCalmRain.intensity(id, target) : 0);
             int prob;
             String sky;
-            if (rain >= 1) {
+            if (!active && calmRain && rain >= 0.1) {
+                prob = (int) Math.min(100, 40 + rain * 2);
+                sky = rain >= 8 ? "비" : "흐림";
+                humidity = Math.min(95, humidity + (int) Math.min(25, rain));
+                temp -= Math.min(2, rain / 10);
+            } else if (rain >= 1) {
                 prob = (int) Math.min(100, 50 + rain);
                 sky = rain >= 20 ? "비" : "흐림";
                 humidity = Math.min(98, humidity + 30);

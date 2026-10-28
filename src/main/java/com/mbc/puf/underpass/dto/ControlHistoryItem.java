@@ -22,6 +22,7 @@ public class ControlHistoryItem {
     private final String displayContent;   // 전광판 변경 후 문구 (display_history.new_content)
     private final Long operatorId;
     private final LocalDateTime createdAt;
+    private String operatorName;          // 처리한 직원 이름 (자동 처리면 null)
     private String reasonNote;             // 상세 사유 (event.reason_note, 없으면 null)
 
     public ControlHistoryItem(String kind, Long underpassId, String underpassName, UnderpassEventType eventType,
@@ -49,6 +50,8 @@ public class ControlHistoryItem {
     public String getDisplayContent() { return displayContent; }
     public Long getOperatorId() { return operatorId; }
     public LocalDateTime getCreatedAt() { return createdAt; }
+    public String getOperatorName() { return operatorName; }
+    public void setOperatorName(String operatorName) { this.operatorName = operatorName; }
     public String getReasonNote() { return reasonNote; }
     public void setReasonNote(String reasonNote) { this.reasonNote = reasonNote; }
 }

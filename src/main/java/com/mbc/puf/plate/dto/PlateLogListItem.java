@@ -30,6 +30,8 @@ public class PlateLogListItem {
     private final LocalDateTime detectedAt;
     // 판별대기 타이머용: 응답 시점 기준 마감까지 남은 초 (대기 상태가 아니거나 마감이 지났으면 0)
     private final long remainingSeconds;
+    private String reviewerName;   // 검토(정정)한 직원 이름 (아직 검토 전이면 null)
+    private String customerName;   // 매칭된 차량의 고객 이름 (매칭 전이면 null)
 
     public PlateLogListItem(Long id, Long cameraId, Long underpassId, String underpassName, String detectedNum,
                             String correctedNum, BigDecimal confidence, String imagePath,
@@ -55,6 +57,10 @@ public class PlateLogListItem {
     }
 
     public long getRemainingSeconds() { return remainingSeconds; }
+    public String getReviewerName() { return reviewerName; }
+    public void setReviewerName(String reviewerName) { this.reviewerName = reviewerName; }
+    public String getCustomerName() { return customerName; }
+    public void setCustomerName(String customerName) { this.customerName = customerName; }
     public Long getId() { return id; }
     public Long getCameraId() { return cameraId; }
     public Long getUnderpassId() { return underpassId; }

@@ -31,7 +31,7 @@ public interface InquiryService {
     // ---- 관리자용 (MP-13 접수의견 처리) ----
 
     // 원글 목록 (검색/상태필터/페이징)
-    PageResponse<InquiryListItem> getInquiryListForAdmin(String keyword, InquiryStatus status, PeriodQuery period,
+    PageResponse<InquiryListItem> getInquiryListForAdmin(String keyword, String customerName, InquiryStatus status, PeriodQuery period,
                                                          int page, int size);
 
     // 원글+답글 상세 (소유자 상관없이)

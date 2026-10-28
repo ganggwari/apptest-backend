@@ -45,6 +45,9 @@ public class NotificationServiceImpl implements NotificationService {
     private static final List<Long> NONE = List.of(-1L);
 
     // 내가 읽은 알림인지 (관리자별 읽음). %s 자리에는 내 관리자 id 자리표시자가 들어간다
+    // 관리자 안 읽음은 최근 30일 알림만 센다 (오래된 알림까지 매번 훑으면 알림이 쌓일수록 느려진다)
+    private static final int UNREAD_WINDOW_DAYS = 30;
+
     private static final String READ_EXISTS =
             "exists (select 1 from ManagerNotificationRead r where r.notificationId = n.id and r.managerId = %s)";
 
@@ -156,6 +159,9 @@ public class NotificationServiceImpl implements NotificationService {
         CustomerNotification n = customerRepository.findByIdAndCustomerId(id, customerId)
                 .orElseThrow(() -> notFound(id));
         n.setRead(true);
+        customerRepository.flush();
+        streamPublisher.publishToCustomer(customerId, "notification-read-change",
+                new com.mbc.puf.stream.RealtimePayloads.NotificationReadChange(id, false, null, getMyUnread(customerId)));
     }
 
     @Override
@@ -166,6 +172,8 @@ public class NotificationServiceImpl implements NotificationService {
         } else {
             customerRepository.markAllReadByCategory(customerId, category);
         }
+        streamPublisher.publishToCustomer(customerId, "notification-read-change",
+                new com.mbc.puf.stream.RealtimePayloads.NotificationReadChange(null, true, category == null ? null : category.name(), getMyUnread(customerId)));
     }
 
     // ================= 관리자 알림 =================
@@ -240,6 +248,7 @@ public class NotificationServiceImpl implements NotificationService {
         c.add("(n.regionId is null or n.regionId in (" + c.param(myRegionIds(me)) + "))")
                 .eqIfPresent("n.category", category);
         if (unreadOnly) {
+            c.add("n.createdAt >= ?", unreadSince());   // 안 읽음 개수(배지)와 같은 기준
             c.add("not " + READ_EXISTS.formatted("?"), me);
         }
         PageResponse<ManagerNotification> found = PagedQuery.fetch(em, "select n from ManagerNotification n",
@@ -265,8 +274,10 @@ public class NotificationServiceImpl implements NotificationService {
     public NotificationUnreadResponse getManagerUnread(LoginUser loginUser) {
         List<Object[]> rows = em.createQuery("select n.category, count(n) from ManagerNotification n"
                         + " where (n.regionId is null or n.regionId in (:regions))"
+                        + " and n.createdAt >= :since"
                         + " and not " + READ_EXISTS.formatted(":me") + " group by n.category", Object[].class)
                 .setParameter("regions", myRegionIds(loginUser.id()))
+                .setParameter("since", unreadSince())
                 .setParameter("me", loginUser.id()).getResultList();
         Map<ManagerNotificationCategory, Long> counts = new EnumMap<>(ManagerNotificationCategory.class);
         for (Object[] row : rows) {
@@ -288,6 +299,8 @@ public class NotificationServiceImpl implements NotificationService {
         em.createNativeQuery("INSERT INTO manager_notification_read (notification_id, manager_id)"
                         + " VALUES (:id, :me) ON CONFLICT DO NOTHING")
                 .setParameter("id", id).setParameter("me", loginUser.id()).executeUpdate();
+        streamPublisher.publishToManager(loginUser.id(), "notification-read-change",
+                new com.mbc.puf.stream.RealtimePayloads.NotificationReadChange(id, false, null, getManagerUnread(loginUser)));
     }
 
     @Override
@@ -296,15 +309,19 @@ public class NotificationServiceImpl implements NotificationService {
         String sql = "INSERT INTO manager_notification_read (notification_id, manager_id)"
                 + " SELECT n.id, :me FROM manager_notification n"
                 + " WHERE (n.region_id IS NULL OR n.region_id IN (:regions))"
+                + " AND n.created_at >= :since"
                 + (category != null ? " AND CAST(n.category AS TEXT) = :cat" : "")
                 + " ON CONFLICT DO NOTHING";
         var q = em.createNativeQuery(sql)
                 .setParameter("me", loginUser.id())
-                .setParameter("regions", myRegionIds(loginUser.id()));
+                .setParameter("regions", myRegionIds(loginUser.id()))
+                .setParameter("since", unreadSince());
         if (category != null) {
             q.setParameter("cat", category.name());
         }
         q.executeUpdate();
+        streamPublisher.publishToManager(loginUser.id(), "notification-read-change",
+                new com.mbc.puf.stream.RealtimePayloads.NotificationReadChange(null, true, category == null ? null : category.name(), getManagerUnread(loginUser)));
     }
 
     // ================= 내부 =================
@@ -318,6 +335,10 @@ public class NotificationServiceImpl implements NotificationService {
 
     private LocalDateTime createdOrNow(LocalDateTime createdAt) {
         return createdAt != null ? createdAt : LocalDateTime.now();
+    }
+
+    private LocalDateTime unreadSince() {
+        return dbClock.now().minusDays(UNREAD_WINDOW_DAYS);
     }
 
     private List<Long> myRegionIds(Long managerId) {

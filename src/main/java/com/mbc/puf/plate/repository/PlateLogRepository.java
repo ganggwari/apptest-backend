@@ -11,6 +11,19 @@ import com.mbc.puf.plate.entity.PlateLog;
 
 public interface PlateLogRepository extends JpaRepository<PlateLog, Long> {
 
+    // Same camera, previous valid OCR results only; current result has not been inserted yet.
+    @Query(value = """
+            SELECT AVG(confidence) FROM (
+                SELECT confidence FROM plate_log
+                WHERE camera_id = :cameraId AND detected_at <= :detectedAt
+                  AND confidence BETWEEN 0 AND 1 AND recog_status <> 'FAIL'
+                ORDER BY detected_at DESC, id DESC LIMIT 100
+            ) recent
+            """, nativeQuery = true)
+    java.math.BigDecimal recentConfidenceAverage(@Param("cameraId") Long cameraId,
+                                                 @Param("detectedAt") LocalDateTime detectedAt);
+
+
     // 중복 인식 판단용: 같은 카메라에서 같은 번호가 from~to 사이에 이미 저장돼 있는지 (가장 최근 1건)
     java.util.Optional<PlateLog> findFirstByCameraIdAndDetectedNumAndDetectedAtBetweenOrderByDetectedAtDesc(
             Long cameraId, String detectedNum, LocalDateTime from, LocalDateTime to);

@@ -31,6 +31,13 @@ public class PmEquipmentListItem {
     private PmEventStatus openEventStatus; // 점검 상태 (없으면 null = 이상 없음)
     private List<BigDecimal> sparkline;    // 최근 24시간 1시간 평균 점수 (오래된 순, 점수 없는 시간은 건너뜀). 목록에서만 채운다
 
+    private String roadStatus;
+    private BigDecimal detectionConfidence;
+    public String getRoadStatus() { return roadStatus; }
+    public void setRoadStatus(String value) { roadStatus = value; }
+    public BigDecimal getDetectionConfidence() { return detectionConfidence; }
+    public void setDetectionConfidence(BigDecimal value) { detectionConfidence = value; }
+
     public PmEquipmentListItem() {
     }
 

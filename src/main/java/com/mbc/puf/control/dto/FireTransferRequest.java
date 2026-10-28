@@ -11,8 +11,9 @@ public class FireTransferRequest {
     @NotNull(message = "차단 이벤트 아이디는 필수입니다.")
     private Long eventId;
 
+    @Size(max = 500)
     @NotEmpty(message = "잔류차량 번호는 최소 1개 이상 입력해 주세요.")
-    private List<String> carNums;
+    private List<@jakarta.validation.constraints.NotBlank @Size(max = 20) String> carNums;
 
     @Size(max = 500, message = "비고는 500자 이내로 입력해 주세요.")
     private String memo;

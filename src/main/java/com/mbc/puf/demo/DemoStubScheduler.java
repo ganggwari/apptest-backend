@@ -32,6 +32,9 @@ import tools.jackson.databind.JsonNode;
  *
  * 침수모델·수위계는 실제와 똑같이 HTTP 로 내부 API(/api/internal/**)를 호출한다.
  * 시나리오는 선택한 지역에만 적용되므로 다른 지역에는 알림이 가지 않는다.
+ *
+ * puf.demo.model-stub-enabled=false 면 가짜 침수모델(현재·미래 점수)은 보내지 않고 날씨·수위만 만든다.
+ * 진짜 침수 서버(FastAPI 8001)가 이 날씨를 읽어 점수를 계산하므로, 둘을 같이 켜면 점수가 섞인다.
  */
 @Component
 @ConditionalOnProperty(name = "puf.demo.enabled", havingValue = "true")
@@ -42,6 +45,7 @@ public class DemoStubScheduler {
     private static final int TICK_SECONDS = 10;         // @Scheduled 주기와 같아야 한다
     private static final int FORECAST_HOURS = 6;        // 위험도 미래 예측: 앞으로 6시간
 
+    private final DemoWaterProfile waterProfile;
     private final DemoScenarioState state;
     private final DemoScenarioService scenarioService;
     private final DemoInternalApi api;
@@ -59,6 +63,7 @@ public class DemoStubScheduler {
     // 평상시 위험점수가 조금씩 오르내리게 하는 값 (지하차도별 현재값). 안전 ~ 주의 사이를 왔다갔다 한다
     private final double calmMaxScore;
     private final double calmStep;
+    private final boolean modelStubEnabled;     // false = 점수는 진짜 침수 서버가 보낸다
     private final Map<Long, Double> calmScores = new java.util.concurrent.ConcurrentHashMap<>();
     private final java.util.Random random = new java.util.Random();
 
@@ -72,7 +77,9 @@ public class DemoStubScheduler {
                              @Value("${puf.demo.calm-water-minutes:5}") int calmWaterMinutes,
                              @Value("${puf.demo.calm-forecast-minutes:10}") int calmForecastMinutes,
                              @Value("${puf.demo.calm-max-score:75}") double calmMaxScore,
-                             @Value("${puf.demo.calm-step:10}") double calmStep) {
+                             @Value("${puf.demo.calm-step:10}") double calmStep,
+                             @Value("${puf.demo.model-stub-enabled:true}") boolean modelStubEnabled, DemoWaterProfile waterProfile) {
+        this.waterProfile=waterProfile;
         this.state = state;
         this.scenarioService = scenarioService;
         this.api = api;
@@ -86,6 +93,7 @@ public class DemoStubScheduler {
         this.calmForecastEvery = ticks(calmForecastMinutes);
         this.calmMaxScore = calmMaxScore;
         this.calmStep = calmStep;
+        this.modelStubEnabled = modelStubEnabled;
     }
 
     // 평상시 점수: 중간값(35) 쪽으로 살짝 끌려가면서 매번 조금씩(±calmStep 정도) 움직인다. 바닥은 baseline, 위는 calmMaxScore
@@ -156,15 +164,12 @@ public class DemoStubScheduler {
                 continue;   // 고정된 곳은 평상시 랜덤·호우 시나리오가 덮어쓰지 않는다
             }
             boolean active = r != null && state.isUnderpassActive(uid);
-            if (!active && !calmScore) {
-                continue;
-            }
             try {
-                modelStub(uid, active);
-                if (active || calmWater) {
-                    waterStub(uid, active, t);
+                if (modelStubEnabled && (active || calmScore)) {
+                    modelStub(uid, active);
                 }
-                if (active || calmForecast) {
+                waterStub(uid, active, t, active || calmWater);
+                if (modelStubEnabled && (active || calmForecast)) {
                     forecastStub(uid, active);
                 }
             } catch (RuntimeException e) {
@@ -256,8 +261,10 @@ public class DemoStubScheduler {
     }
 
     // 수위계 흉내: 시나리오 중에는 곡선대로, 평소에는 0 근처
-    private void waterStub(Long uid, boolean active, double t) {
-        double level = active ? state.waterAt(t) : (uid % 4) * 0.1;
+    private void waterStub(Long uid, boolean active, double t, boolean due) {
+        var sample=waterProfile.sample(uid,due,active?state.waterAt(t):0);
+        if(sample.isEmpty())return;
+        double level=sample.getAsDouble();
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("underpassId", uid);
         body.put("levelCm", dec(level, 1));

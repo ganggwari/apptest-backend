@@ -2,9 +2,13 @@ package com.mbc.puf.plate.service;
 
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import com.mbc.puf.alert.service.AlertService;
 import com.mbc.puf.car.entity.Car;
@@ -43,6 +47,8 @@ import jakarta.persistence.EntityManager;
 @Service
 public class PlateLogReviewServiceImpl implements PlateLogReviewService {
 
+    private static final Logger log = LoggerFactory.getLogger(PlateLogReviewServiceImpl.class);
+
 
     private static final String FROM = " from PlateLog p join Camera c on c.id = p.cameraId"
             + " join Underpass u on u.id = c.underpassId";
@@ -57,12 +63,15 @@ public class PlateLogReviewServiceImpl implements PlateLogReviewService {
     private final DbClock dbClock;
     private final EntityManager em;
     private final com.mbc.puf.stream.StreamPublisher streamPublisher;   // SSE 실시간 이벤트
+    private final TransactionTemplate tx;                               // 자동 마감 처리에서 트랜잭션을 직접 나눠 쓴다
 
     public PlateLogReviewServiceImpl(PlateLogRepository plateLogRepository, UnderpassRepository underpassRepository,
                                      UnderpassEventRepository eventRepository, CameraRepository cameraRepository,
                                      CarRepository carRepository, AlertService alertService,
                                      ScopeResolver scopeResolver, DbClock dbClock, EntityManager em,
-                                     com.mbc.puf.stream.StreamPublisher streamPublisher) {
+                                     com.mbc.puf.stream.StreamPublisher streamPublisher,
+                                     PlatformTransactionManager transactionManager) {
+        this.tx = new TransactionTemplate(transactionManager);
         this.plateLogRepository = plateLogRepository;
         this.underpassRepository = underpassRepository;
         this.eventRepository = eventRepository;
@@ -79,7 +88,8 @@ public class PlateLogReviewServiceImpl implements PlateLogReviewService {
     @Transactional(readOnly = true)
     public PageResponse<PlateLogListItem> getPlateLogs(LoginUser loginUser, ScopeQuery scope,
                                                        ReviewStatus reviewStatus, RecognitionStatus recognitionStatus,
-                                                       VehicleQuery vehicle, PeriodQuery period, PageQuery page) {
+                                                       VehicleQuery vehicle, String reviewerName, String customerName,
+                                                       PeriodQuery period, PageQuery page) {
         // REGIONAL_ADMIN은 본인 담당 지역 소속 지하차도만 (Scope 공통 규칙)
         ScopeQuery resolved = scopeResolver.resolve(loginUser, scope);
         QueryConditions c = new QueryConditions()
@@ -88,6 +98,8 @@ public class PlateLogReviewServiceImpl implements PlateLogReviewService {
                 .eqIfPresent("p.reviewStatus", reviewStatus)
                 .eqIfPresent("p.recognitionStatus", recognitionStatus)
                 .carNumIfPresent(vehicle.getCarNum(), "p.detectedNum", "p.correctedNum")   // 인식값·정정값 둘 다
+                .managerNameIfPresent(reviewerName, "p.reviewedBy")   // 검토한 직원 이름
+                .carOwnerNameIfPresent(customerName, "p.carId")   // 매칭된 차량의 고객 이름
                 .periodIfPresent("p.detectedAt", period);
 
         // 판별대기 목록은 마감 임박한 것부터, 그 외에는 최근 인식순
@@ -96,7 +108,7 @@ public class PlateLogReviewServiceImpl implements PlateLogReviewService {
                 : " order by p.detectedAt desc, p.id desc";
 
         var now = dbClock.now();   // 남은 시간도 DB 시계 기준 (마감 판정과 같은 시계)
-        return PagedQuery.fetch(em, "select p, c.underpassId, u.name" + FROM, "select count(p)" + FROM, c, orderBy,
+        PageResponse<PlateLogListItem> result = PagedQuery.fetch(em, "select p, c.underpassId, u.name" + FROM, "select count(p)" + FROM, c, orderBy,
                 Object[].class, row -> {
                     PlateLog p = (PlateLog) row[0];
                     return new PlateLogListItem(p.getId(), p.getCameraId(), (Long) row[1], (String) row[2],
@@ -105,6 +117,36 @@ public class PlateLogReviewServiceImpl implements PlateLogReviewService {
                             p.getReviewedBy(), p.getReviewedAt(), p.getDetectedAt(),
                             com.mbc.puf.stream.StreamPayloads.remainingSeconds(p.getReviewStatus(), p.getReviewDeadline(), now));
                 }, page.toParams());
+        fillNames(result.getItems());
+        return result;
+    }
+
+    // 이 페이지 항목들의 검토 직원 이름·매칭 고객 이름을 한 번에 채운다 (항목마다 조회하지 않게 모아서)
+    private void fillNames(List<PlateLogListItem> items) {
+        List<Long> managerIds = items.stream().map(PlateLogListItem::getReviewedBy).filter(java.util.Objects::nonNull)
+                .distinct().toList();
+        List<Long> carIds = items.stream().map(PlateLogListItem::getCarId).filter(java.util.Objects::nonNull)
+                .distinct().toList();
+        java.util.Map<Long, String> managers = new java.util.HashMap<>();
+        java.util.Map<Long, String> customers = new java.util.HashMap<>();
+        if (!managerIds.isEmpty()) {
+            for (Object[] r : em.createQuery("select m.id, e.name from Manager m, Employee e"
+                    + " where e.id = m.employeeId and m.id in :ids", Object[].class)
+                    .setParameter("ids", managerIds).getResultList()) {
+                managers.put((Long) r[0], (String) r[1]);
+            }
+        }
+        if (!carIds.isEmpty()) {
+            for (Object[] r : em.createQuery("select cr.id, cu.name from Car cr, Customer cu"
+                    + " where cu.id = cr.customerId and cr.id in :ids", Object[].class)
+                    .setParameter("ids", carIds).getResultList()) {
+                customers.put((Long) r[0], (String) r[1]);
+            }
+        }
+        for (PlateLogListItem item : items) {
+            item.setReviewerName(managers.get(item.getReviewedBy()));
+            item.setCustomerName(customers.get(item.getCarId()));
+        }
     }
 
     @Override
@@ -174,22 +216,38 @@ public class PlateLogReviewServiceImpl implements PlateLogReviewService {
         alertService.sendAlertsForPlate(underpass, camera.getCameraRole(), cars, plateLog.getDetectedNum());
     }
 
+    // 1) 마감 지난 대기 건을 자동 처리 상태로 바꾸는 것까지 먼저 커밋하고,
+    // 2) 알림·화면 알림은 한 건씩 따로 처리한다. 한 건의 알림이 실패해도 상태 변경과 다른 건은 그대로 남는다
+    //    (실패한 알림은 로그만 남기고 다시 보내지 않는다)
     @Override
-    @Transactional
     public void autoProcessExpired() {
         var now = dbClock.now();
-        // 처리 전에 대상(마감 지난 대기 건)을 먼저 읽어 두었다가, 처리 후 화면에 하나씩 알린다
-        var expired = plateLogRepository.findExpiredPending(now);
-        if (expired.isEmpty()) {
+        List<Object[]> expired = tx.execute(status -> {
+            // 처리 전에 대상(마감 지난 대기 건)을 먼저 읽어 두었다가, 처리 후 화면에 하나씩 알린다
+            List<Object[]> rows = plateLogRepository.findExpiredPending(now);
+            if (!rows.isEmpty()) {
+                plateLogRepository.autoProcessExpired(now);
+            }
+            return rows;
+        });
+        if (expired == null || expired.isEmpty()) {
             return;
         }
-        plateLogRepository.autoProcessExpired(now);
         for (Object[] row : expired) {
-            sendAlertOnAutoClose((Long) row[0]);
-            streamPublisher.dataChangedToAdmins((Long) row[2], "plate-log", "UPDATE", (Long) row[0]);
-            streamPublisher.publishToAdmins((Long) row[2], "plate-queue-done",
-                    new com.mbc.puf.stream.StreamPayloads.PlateQueue((Long) row[0], (Long) row[1], null, null, null,
-                            ReviewStatus.AUTO_PROCESSED, null, null));
+            Long plateLogId = (Long) row[0];
+            try {
+                tx.executeWithoutResult(status -> sendAlertOnAutoClose(plateLogId));
+            } catch (RuntimeException e) {
+                log.warn("[plate] 자동 마감 건 {} 알림 실패 (상태는 이미 처리됨): {}", plateLogId, e.toString());
+            }
+            try {
+                streamPublisher.dataChangedToAdmins((Long) row[2], "plate-log", "UPDATE", plateLogId);
+                streamPublisher.publishToAdmins((Long) row[2], "plate-queue-done",
+                        new com.mbc.puf.stream.StreamPayloads.PlateQueue(plateLogId, (Long) row[1], null, null, null,
+                                ReviewStatus.AUTO_PROCESSED, null, null));
+            } catch (RuntimeException e) {
+                log.warn("[plate] 자동 마감 건 {} 화면 알림 실패: {}", plateLogId, e.toString());
+            }
         }
     }
 }

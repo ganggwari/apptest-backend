@@ -4,6 +4,11 @@ import java.util.List;
 
 import com.mbc.puf.common.enums.DisplayCategory;
 import com.mbc.puf.common.security.LoginUser;
+import com.mbc.puf.common.request.PageQuery;
+import com.mbc.puf.common.request.PeriodQuery;
+import com.mbc.puf.common.request.ScopeQuery;
+import com.mbc.puf.common.response.PageResponse;
+import com.mbc.puf.display.dto.DisplayHistoryItem;
 import com.mbc.puf.display.dto.DisplayPageSaveRequest;
 import com.mbc.puf.display.dto.DisplayPresetItem;
 import com.mbc.puf.display.dto.VmsPageItem;
@@ -25,4 +30,11 @@ public interface DisplayService {
 
     /** 수동 페이지 삭제 (이후 page_no 재정렬). 자동 페이지는 삭제할 수 없다(409) */
     void deletePage(LoginUser loginUser, Long vmsId, Integer pageNo);
+
+    /**
+     * 전광판 문구 변경 이력 (최근 순). 내 담당 지역의 지하차도가 원인인 것만 본다.
+     * vmsId·source(AUTO/MANUAL)는 선택 필터, period 는 변경 시각 기준(endDate 당일 포함)
+     */
+    PageResponse<DisplayHistoryItem> getHistory(LoginUser loginUser, ScopeQuery scope, Long vmsId, String source,
+                                                String managerName, PeriodQuery period, PageQuery page);
 }

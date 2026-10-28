@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Limit;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -88,6 +89,7 @@ public class UnderpassServiceImpl implements UnderpassService {
     private final com.mbc.puf.stream.StreamPublisher streamPublisher;   // SSE 실시간 이벤트
     private final EntityManager em;
     private final com.mbc.puf.internal.repository.RiskForecastRepository riskForecastRepository;
+    private final ApplicationEventPublisher eventPublisher;   // 내비 위험지점 즉시 갱신 요청
 
     public UnderpassServiceImpl(UnderpassRepository underpassRepository, UnderpassEventRepository eventRepository,
                                 TransitRepository transitRepository,
@@ -95,8 +97,10 @@ public class UnderpassServiceImpl implements UnderpassService {
                                 ThresholdService thresholdService, ScopeResolver scopeResolver,
                                 DbClock dbClock, EntityManager em,
                                 com.mbc.puf.stream.StreamPublisher streamPublisher,
-                                com.mbc.puf.internal.repository.RiskForecastRepository riskForecastRepository) {
+                                com.mbc.puf.internal.repository.RiskForecastRepository riskForecastRepository,
+                                ApplicationEventPublisher eventPublisher) {
         this.riskForecastRepository = riskForecastRepository;
+        this.eventPublisher = eventPublisher;
         this.streamPublisher = streamPublisher;
         this.underpassRepository = underpassRepository;
         this.eventRepository = eventRepository;
@@ -237,6 +241,7 @@ public class UnderpassServiceImpl implements UnderpassService {
             underpass.setFloodHistoryCount(request.getFloodHistoryCount());
         }
         streamPublisher.dataChangedPublic(underpass.getRegionId(), "underpass", "UPDATE", underpass.getId());
+        eventPublisher.publishEvent(new com.mbc.puf.navigation.service.HazardRefreshRequested());   // 좌표·길이 등이 바뀌었을 수 있다
         return toDetail(reload(underpass));
     }
 
@@ -247,6 +252,7 @@ public class UnderpassServiceImpl implements UnderpassService {
         requireOwnableRegion(loginUser, underpass.getRegionId());
         underpass.setDeleted(true);
         streamPublisher.dataChangedPublic(underpass.getRegionId(), "underpass", "DELETE", underpass.getId());
+        eventPublisher.publishEvent(new com.mbc.puf.navigation.service.HazardRefreshRequested());   // 삭제된 지하차도는 위험지점에서 빠진다
     }
 
     // ---- 상행/하행 입·출구 카메라 지정 (MP-10-1): 담당 지역만 ----
@@ -275,6 +281,7 @@ public class UnderpassServiceImpl implements UnderpassService {
         underpass.setDownEntryCameraId(request.getDownEntryCameraId());
         underpass.setDownExitCameraId(request.getDownExitCameraId());
         streamPublisher.dataChangedPublic(underpass.getRegionId(), "underpass", "UPDATE", underpass.getId());
+        eventPublisher.publishEvent(new com.mbc.puf.navigation.service.HazardRefreshRequested());   // 입·출구 카메라가 바뀌면 구간 좌표가 달라진다
         return toDetail(underpass);
     }
 
@@ -310,7 +317,7 @@ public class UnderpassServiceImpl implements UnderpassService {
     @Override
     @Transactional(readOnly = true)
     public PageResponse<ControlHistoryItem> getControlHistory(LoginUser loginUser, Long id, String kind,
-                                                              PeriodQuery period, PageQuery page) {
+                                                              String operatorName, PeriodQuery period, PageQuery page) {
         Underpass underpass = requireExistingUnderpass(id);
         scopeResolver.resolve(loginUser, ScopeQuery.of(null, id));   // 담당 지역 밖의 제어이력은 볼 수 없다(403)
         PageParams pageParams = page.toParams();
@@ -322,7 +329,9 @@ public class UnderpassServiceImpl implements UnderpassService {
         long total = 0;
 
         if (!"DISPLAY".equals(kind)) {
-            QueryConditions c = new QueryConditions().add("e.underpassId = ?", id).periodIfPresent("e.createdAt", period);
+            QueryConditions c = new QueryConditions().add("e.underpassId = ?", id)
+                    .managerNameIfPresent(operatorName, "e.operatorId")   // 처리한 직원 이름
+                    .periodIfPresent("e.createdAt", period);
             merged.addAll(top(c, "select e from UnderpassEvent e", " order by e.createdAt desc, e.id desc",
                     UnderpassEvent.class, needed).stream()
                     .map(e -> {
@@ -337,7 +346,10 @@ public class UnderpassServiceImpl implements UnderpassService {
         }
         if (!"EVENT".equals(kind)) {
             // 전광판 문구 변경 이력: display_history.underpass_id (자동 표출은 가장 가까운 전광판 것만 남는다)
+            String opLike = com.mbc.puf.common.util.LikePattern.lowerContainsOrNull(operatorName);
             String where = " WHERE dh.underpass_id = :id"
+                    + (opLike == null ? "" : " AND dh.changed_by IN (SELECT mm.id FROM manager mm JOIN employee ee ON ee.id = mm.employee_id"
+                    + " WHERE LOWER(ee.name) LIKE :opLike ESCAPE '\\')")
                     + (period != null && period.startAt() != null ? " AND dh.changed_at >= :fromAt" : "")
                     + (period != null && period.endAtExclusive() != null ? " AND dh.changed_at < :toAt" : "");
             String from = " FROM display_history dh";
@@ -352,6 +364,9 @@ public class UnderpassServiceImpl implements UnderpassService {
                 if (period != null && period.endAtExclusive() != null) {
                     q.setParameter("toAt", period.endAtExclusive());
                 }
+                if (opLike != null) {
+                    q.setParameter("opLike", opLike);
+                }
             }
             for (Object row : rowsQuery.getResultList()) {
                 Object[] r = (Object[]) row;
@@ -364,7 +379,24 @@ public class UnderpassServiceImpl implements UnderpassService {
         merged.sort(Comparator.comparing(ControlHistoryItem::getCreatedAt).reversed());
         int from = (int) Math.min(pageParams.getOffset(), merged.size());
         int to = Math.min(from + pageParams.getSize(), merged.size());
-        return new PageResponse<>(merged.subList(from, to), pageParams.getPage(), pageParams.getSize(), total);
+        List<ControlHistoryItem> pageItems = merged.subList(from, to);
+        fillOperatorNames(pageItems);
+        return new PageResponse<>(pageItems, pageParams.getPage(), pageParams.getSize(), total);
+    }
+
+    // 이 페이지 항목들의 처리 직원 이름을 한 번에 채운다 (항목마다 조회하지 않게 모아서)
+    private void fillOperatorNames(List<ControlHistoryItem> items) {
+        List<Long> ids = items.stream().map(ControlHistoryItem::getOperatorId).filter(java.util.Objects::nonNull)
+                .distinct().toList();
+        if (ids.isEmpty()) {
+            return;
+        }
+        java.util.Map<Long, String> names = new java.util.HashMap<>();
+        for (Object[] r : em.createQuery("select m.id, e.name from Manager m, Employee e"
+                + " where e.id = m.employeeId and m.id in :ids", Object[].class).setParameter("ids", ids).getResultList()) {
+            names.put((Long) r[0], (String) r[1]);
+        }
+        items.forEach(i -> i.setOperatorName(names.get(i.getOperatorId())));
     }
 
     // ---- 통과 기록 수동 완료 (단건) ----
@@ -466,7 +498,8 @@ public class UnderpassServiceImpl implements UnderpassService {
         return item;
     }
 
-    static UnderpassDetailResponse toDetail(Underpass u) {
+    // 다른 도메인(control 의 차단/해제 응답)도 같은 모양으로 쓰려고 public 으로 연다
+    public static UnderpassDetailResponse toDetail(Underpass u) {
         UnderpassDetailResponse d = new UnderpassDetailResponse();
         d.setId(u.getId());
         d.setName(u.getName());

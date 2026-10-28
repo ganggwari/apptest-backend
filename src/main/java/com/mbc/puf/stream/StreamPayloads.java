@@ -22,6 +22,11 @@ public final class StreamPayloads {
 
     private static final String DT = "yyyy-MM-dd HH:mm";
 
+    /** [sinkhole-update] 관리자 전용. 신뢰도는 0~1이며 설비 고장 점수가 아니다. */
+    public record SinkholeUpdate(Long equipId, Long underpassId, Long resultId, Long eventId,
+            boolean detected, BigDecimal confidence, String reviewStatus, String eventStatus,
+            String imageUrl, @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = DT) LocalDateTime analyzedAt) {}
+
     /** [risk-update] 위험점수가 갱신될 때마다(등급이 그대로여도) 공개. 목록/상세의 점수를 바로 바꾸는 용도 */
     public record RiskUpdate(Long underpassId, BigDecimal riskScore, RiskLevel riskLevel, BigDecimal rainfall1hMm,
             @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = DT) LocalDateTime predictedAt) {

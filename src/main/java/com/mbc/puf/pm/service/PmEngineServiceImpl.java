@@ -65,6 +65,7 @@ public class PmEngineServiceImpl implements PmEngineService {
         Map<PmEquipmentType, int[]> staleCount = new EnumMap<>(PmEquipmentType.class);   // [sensorStale]
         Map<PmEquipmentType, LocalDateTime> latestSensor = new EnumMap<>(PmEquipmentType.class);
         for (PmEquipmentType t : PmEquipmentType.values()) {
+            if (t == PmEquipmentType.ROAD) continue;
             counts.put(t, new int[2]);
             staleCount.put(t, new int[1]);
         }
@@ -76,7 +77,7 @@ public class PmEngineServiceImpl implements PmEngineService {
                       JOIN underpass u ON u.id = e.underpass_id AND u.is_deleted = FALSE
                       LEFT JOIN LATERAL (SELECT s.predicted_at FROM pm_score s WHERE s.equip_id = e.id
                                           ORDER BY s.predicted_at DESC LIMIT 1) ls ON TRUE
-                     WHERE e.is_deleted = FALSE AND u.region_id IN (:regionIds)
+                     WHERE e.is_deleted = FALSE AND e.type::text <> 'ROAD' AND u.region_id IN (:regionIds)
                      GROUP BY e.type
                     """).setParameter("regionIds", regions).getResultList()) {
                 Object[] r = (Object[]) row;
@@ -104,6 +105,7 @@ public class PmEngineServiceImpl implements PmEngineService {
         List<PmEngineStatusResponse.TypeStatus> byType = new ArrayList<>();
         int total = 0, scored = 0, stale = 0;
         for (PmEquipmentType t : PmEquipmentType.values()) {
+            if (t == PmEquipmentType.ROAD) continue;
             int[] c = counts.get(t);
             total += c[0];
             scored += c[1];

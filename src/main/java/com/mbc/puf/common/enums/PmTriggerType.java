@@ -4,6 +4,7 @@ package com.mbc.puf.common.enums;
 public enum PmTriggerType implements DbEnum {
     DANGER_ENTRY("위험진입"),   // 점수가 위험 임계치 아래에서 위로 올라섬
     SURGE("급상승"),            // 주의 이상인 채로 24시간 최저 점수보다 일정 폭 이상 오름
+    SINKHOLE("싱크홀탐지"),
     NO_DATA("미수신");          // 센서 데이터가 기준 시간 넘게 안 들어옴 (점수·단계 없음)
 
     private final String dbValue;

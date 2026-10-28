@@ -19,14 +19,14 @@ import org.springframework.stereotype.Component;
 public class DemoScenarioState {
 
     /** 시나리오 전체 길이 (speed=1 일 때 초) */
-    public static final double TOTAL_SEC = 170;
+    public static final double TOTAL_SEC = 120;
 
     /** 진행 단계 (시나리오 시간 기준 구간) */
     public enum Phase {
-        FORECAST("호우 예보", 0, 15),
-        RISING("강우 시작 · 위험도 상승", 15, 75),
-        BLOCKING("수위 급상승 · 자동 차단", 75, 120),
-        RECOVERING("비 약화 · 수위 하강", 120, 170);
+        FORECAST("호우 예보", 0, 10),
+        RISING("강우 시작 · 위험도 상승", 10, 60),
+        BLOCKING("수위 상승 · 자동 차단", 60, 100),
+        RECOVERING("비 약화 · 수위 하강", 100, 120);
 
         public final String label;
         public final double from;
@@ -128,11 +128,16 @@ public class DemoScenarioState {
         return points[points.length - 1][1];
     }
 
-    private static final double[][] RAIN = {{0, 0}, {15, 0}, {55, 9}, {100, 9}, {140, 0}};
-    private static final double[][] WATER = {{0, 0.2}, {30, 0.5}, {60, 9}, {80, 16}, {105, 33}, {118, 33}, {150, 10}, {170, 0}};
-    private static final double[][] FORECAST_SCALE = {{0, 1}, {110, 1}, {170, 0.15}};
-    // 시간별 예보 강수량(mm/h) 모양: 지금부터 1시간 뒤, 2시간 뒤 ... 순서. 2~4시간 뒤가 가장 세다
-    private static final double[] FORECAST_SHAPE = {35, 55, 70, 50, 30, 15, 6, 2};
+    // 이 아래 숫자 표가 시나리오의 "시간 → 값" 곡선이다. {시나리오 초, 값} 쌍이고, 쌍 사이는 직선으로 이어진다.
+    // 실제로 내리는 비(관측): 처음 20초는 안 오다가 서서히 세진다 (예보가 먼저 알리고, 실제 비는 뒤따라온다)
+    private static final double[][] RAIN = {{0, 0}, {10, 0}, {30, 2}, {55, 6}, {75, 9}, {98, 9}, {120, 0}};
+    // 수위(cm): 천천히 오르다가 60초 이후에 빨라진다 (최대 18cm, 2분 시나리오). 5cm 지하차도는 약 68초, 15cm 지하차도는 약 88초에 기준에 닿는다
+    private static final double[][] WATER = {{0, 0.2}, {25, 0.4}, {45, 1.5}, {60, 3}, {70, 5.5}, {80, 9}, {88, 15},
+            {96, 18}, {105, 18}, {114, 6}, {120, 0}};
+    // 예보 크기 비율: 시나리오 앞쪽에는 1(예보가 가장 센 상태)을 유지하고, 비가 약해지는 구간에서 서서히 줄인다
+    private static final double[][] FORECAST_SCALE = {{0, 1}, {90, 1}, {120, 0.15}};
+    // 시간별 예보 강수량(mm/h) 모양: 지금부터 1시간 뒤, 2시간 뒤 ... 순서. 평소 예보는 0이라서 시작하자마자 급격히 센 비를 알린다 (3시간 뒤 105mm/h 가 최대)
+    private static final double[] FORECAST_SHAPE = {45, 80, 105, 80, 50, 28, 12, 4};
 
     /** 이번 한 번(10초)의 강수량(mm). 시나리오 시간 t 기준 */
     public double rainAt(double t) {

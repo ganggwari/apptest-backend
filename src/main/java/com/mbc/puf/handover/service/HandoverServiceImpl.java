@@ -100,27 +100,57 @@ public class HandoverServiceImpl implements HandoverService {
     @Transactional(readOnly = true)
     public HandoverDetail getPrevious(LoginUser loginUser) {
         LocalDateTime now = dbClock.now();
+        List<Long> regions = scopeResolver.regionsOf(loginUser, null);
         Manager me = managerRepository.findById(loginUser.id()).orElse(null);
-        Shift myShift = me == null || me.getShiftId() == null ? null : shiftRepository.findById(me.getShiftId()).orElse(null);
+        Shift mine = me == null || me.getShiftId() == null ? null
+                : shiftRepository.findById(me.getShiftId()).orElse(null);
+        Window prev = mine == null ? null : previousWindow(mine, now);
+        LocalDateTime start = prev == null ? now.minus(NO_SHIFT_WINDOW) : prev.start();
+        LocalDateTime end = prev == null ? now : prev.end();
 
-        if (myShift == null) {
-            // 근무조가 없으면: 가장 최근에 쓴 리포트, 그것도 없으면 최근 8시간 집계
-            ShiftHandover latest = handoverRepository.findFirstByOrderByIdDesc().orElse(null);
-            if (latest != null) {
-                return toDetail(latest);
-            }
-            return computed(loginUser, null, null, now.minus(NO_SHIFT_WINDOW), now);
+        // 시연 팝업: 업무 내역은 예시, 이전 근무조 인원과 현재 PM 대기는 실제 데이터.
+        // 저장된 타 지역 인수인계 기록을 재사용하지 않는다.
+        List<HandoverRows.StaffInfoRow> people = prev == null || regions.isEmpty() ? List.of()
+                : new NativeSql("""
+                    SELECT m.id AS manager_id, emp.name AS name, emp.phone AS phone
+                      FROM manager m JOIN employee emp ON emp.id = m.employee_id
+                     WHERE m.shift_id = :shiftId AND CAST(m.status AS text) = 'ACTIVE'
+                       AND m.id <> :currentManagerId
+                       AND EXISTS (SELECT 1 FROM manager_region mr
+                                    WHERE mr.manager_id = m.id AND mr.region_id IN (:regionIds))
+                     ORDER BY m.id
+                    """).param("shiftId", prev.shift().getId()).param("currentManagerId", loginUser.id())
+                        .param("regionIds", regions).list(em, HandoverRows.StaffInfoRow.class);
+        String names = people.isEmpty() ? "이전 근무자 미배정"
+                : String.join(" · ", people.stream().map(HandoverRows.StaffInfoRow::getName).toList());
+        HandoverRows.StaffInfoRow single = people.size() == 1 ? people.get(0) : null;
+
+        // PM은 이전 근무 종료 시점의 스냅샷이 아니라 조회 시점의 현황으로 보충한다.
+        PmPeriodSummary pm = pmReportService.summarize(regions, null, now.minus(NO_SHIFT_WINDOW), now);
+        List<HandoverSummary.Activity> activities = new ArrayList<>();
+        activities.add(new HandoverSummary.Activity(end.minusMinutes(10), "통제", "[예시] 통제 시설 확인 및 다음 근무조 전달", names));
+        activities.add(new HandoverSummary.Activity(end.minusMinutes(20), "위험", "[예시] 강우에 따른 위험 상승 시설 모니터링", names));
+        activities.add(new HandoverSummary.Activity(end.minusMinutes(30), "점검", "[예시] 설비 점검 2건 확인", names));
+        for (PmEventItem event : pm.openEvents()) {
+            activities.add(new HandoverSummary.Activity(now, "설비", "[현재 미처리] " + pmEventText(event), null));
         }
-        Window prev = previousWindow(myShift, now);
-        if (prev == null) {   // 근무조가 하나뿐이라 "직전"이 따로 없음
-            return computed(loginUser, null, null, now.minus(NO_SHIFT_WINDOW), now);
-        }
-        ShiftHandover written = handoverRepository
-                .findFirstByShiftIdAndShiftDateOrderByIdDesc(prev.shift().getId(), prev.date()).orElse(null);
-        if (written != null) {
-            return toDetail(written);
-        }
-        return computed(loginUser, prev.shift(), prev.date(), prev.start(), prev.end());
+        List<HandoverSummary.StaffWork> staff = people.stream().map(person ->
+                new HandoverSummary.StaffWork(person.getManagerId(), person.getName(), person.getPhone(), true,
+                        0, 0, 0, 0, 0, 0, 0, 0)).toList();
+        var summary = new HandoverSummary(start, end,
+                new HandoverSummary.Counts(1, 0, 3, 0, pm.newEventCount(), 2, pm.openEventCount()),
+                List.of(), List.of(), pm, staff, activities);
+        tools.jackson.databind.node.ObjectNode json = objectMapper.valueToTree(summary);
+        json.put("demo", true);
+        json.put("pmLive", true);
+        json.put("pmRefreshedAt", now.toString());
+        json.put("notice", "통제·위험 상승·점검 완료 건수와 업무 기록은 예시입니다. 이전 근무조 인원과 PM 현황은 실제 조회값입니다.");
+        return new HandoverDetail(null, false, prev == null ? null : prev.shift().getId(),
+                prev == null ? null : prev.shift().getName(), prev == null ? null : prev.date(),
+                prev == null ? null : prev.shift().getStartTime(), prev == null ? null : prev.shift().getEndTime(),
+                start, end, single == null ? null : single.getManagerId(), names,
+                single == null ? null : single.getPhone(),
+                "[시연용] 예시 업무 요약 + 현재 미처리 예지보전 이벤트", now, json);
     }
 
     // ------------------------------------------------------------------ 미리보기
@@ -158,7 +188,7 @@ public class HandoverServiceImpl implements HandoverService {
     // ------------------------------------------------------------------ 조회·수정
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<HandoverListItem> list(Long shiftId, PeriodQuery period, PageQuery page) {
+    public PageResponse<HandoverListItem> list(Long shiftId, String managerName, PeriodQuery period, PageQuery page) {
         period.validate();
         PageParams p = page.toParams();
         String from = """
@@ -171,16 +201,18 @@ public class HandoverServiceImpl implements HandoverService {
         NativeSql rows = filters(new NativeSql("""
                 SELECT h.id AS id, h.shift_id AS shift_id, s.name AS shift_name, h.shift_date AS shift_date,
                        h.manager_id AS manager_id, emp.name AS author_name, h.memo AS memo, h.created_at AS created_at
-                """ + from), shiftId, period)
+                """ + from), shiftId, managerName, period)
                 .append(" ORDER BY h.shift_date DESC, h.id DESC LIMIT :size OFFSET :offset")
                 .param("size", p.getSize()).param("offset", p.getOffset());
-        NativeSql count = filters(new NativeSql("SELECT COUNT(*) AS total" + from), shiftId, period);
+        NativeSql count = filters(new NativeSql("SELECT COUNT(*) AS total" + from), shiftId, managerName, period);
         return new PageResponse<>(rows.list(em, HandoverListItem.class), p.getPage(), p.getSize(),
                 count.single(em, com.mbc.puf.pm.service.PmQueryServiceImpl.Total.class).getTotal());
     }
 
-    private NativeSql filters(NativeSql sql, Long shiftId, PeriodQuery period) {
+    private NativeSql filters(NativeSql sql, Long shiftId, String managerName, PeriodQuery period) {
+        String nameLike = com.mbc.puf.common.util.LikePattern.lowerContainsOrNull(managerName);
         return sql.andIf(shiftId != null, " AND h.shift_id = :shiftId", "shiftId", shiftId)
+                .andIf(nameLike != null, " AND LOWER(emp.name) LIKE :nameLike ESCAPE '\\'", "nameLike", nameLike)
                 .andIf(period.getStartDate() != null, " AND h.shift_date >= :startDate", "startDate", period.getStartDate())
                 .andIf(period.getEndDate() != null, " AND h.shift_date <= :endDate", "endDate", period.getEndDate());
     }
@@ -254,7 +286,7 @@ public class HandoverServiceImpl implements HandoverService {
         }
         pm.newEvents().forEach(ev -> activities.add(new HandoverSummary.Activity(ev.getCreatedAt(), "설비", pmEventText(ev), null)));
         pm.actions().forEach(a -> activities.add(new HandoverSummary.Activity(a.getCreatedAt(), "점검",
-                String.format("%s %s 점검 기록: %s", a.getCode(), a.getUnderpassName(), a.getContent()), a.getManagerName())));
+                String.format("%s %s %s: %s", a.getCode(), a.getUnderpassName(), a.getKindLabel() == null ? "점검 기록" : a.getKindLabel(), a.getContent()), a.getManagerName())));
         List<HandoverRows.DisplayEditRow> displayEdits = new NativeSql("""
                 SELECT h.changed_at AS changed_at, u.name AS underpass_name, h.new_content AS new_content, emp.name AS actor_name
                   FROM display_history h
@@ -295,6 +327,9 @@ public class HandoverServiceImpl implements HandoverService {
 
     /** 새 점검 대기 한 줄. 미수신은 점수·단계가 없다 */
     private String pmEventText(PmEventItem ev) {
+        if (ev.getTriggerType() == PmTriggerType.SINKHOLE) {
+            return String.format("%s %s 노면 싱크홀 의심 탐지 · 사진 확인 필요", ev.getCode(), ev.getUnderpassName());
+        }
         if (ev.getTriggerType() == PmTriggerType.NO_DATA) {
             return String.format("%s %s 센서 데이터 미수신 점검 대기 등록", ev.getCode(), ev.getUnderpassName());
         }
