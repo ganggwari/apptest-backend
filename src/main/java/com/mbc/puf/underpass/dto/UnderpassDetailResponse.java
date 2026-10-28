@@ -31,6 +31,9 @@ public class UnderpassDetailResponse {
     private Long currentBlockEventId;
     private RiskLevel currentRiskLevel;
     private BigDecimal currentRiskScore;
+    private BigDecimal rainfallMm;        // 최신 위험점수 시점의 1시간 강우량(mm). 점수 기록이 없으면 null
+    private Long pendingReviewCount;     // 이 지하차도 카메라의 판별대기(PENDING) 건수
+    private Long remainingCount;         // 이 지하차도의 잔류차량(REMAINING) 건수
     private Long upEntryCameraId;
     private Long upExitCameraId;
     private Long downEntryCameraId;
@@ -115,6 +118,12 @@ public class UnderpassDetailResponse {
     public Long getDownExitCameraId() { return downExitCameraId; }
     public void setDownExitCameraId(Long downExitCameraId) { this.downExitCameraId = downExitCameraId; }
 
+    public BigDecimal getRainfallMm() { return rainfallMm; }
+    public void setRainfallMm(BigDecimal rainfallMm) { this.rainfallMm = rainfallMm; }
+    public Long getPendingReviewCount() { return pendingReviewCount; }
+    public void setPendingReviewCount(Long pendingReviewCount) { this.pendingReviewCount = pendingReviewCount; }
+    public Long getRemainingCount() { return remainingCount; }
+    public void setRemainingCount(Long remainingCount) { this.remainingCount = remainingCount; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

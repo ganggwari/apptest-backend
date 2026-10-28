@@ -153,6 +153,15 @@ public class UnderpassServiceImpl implements UnderpassService {
     public UnderpassDetailResponse getUnderpass(LoginUser loginUser, Long id) {
         UnderpassDetailResponse detail = toDetail(requireExistingUnderpass(id));
         detail.setManageable(myRegionIds(loginUser).contains(detail.getRegionId()));
+        // 앱 상세 화면(시설 현황 카드)이 쓰는 값: 목록 응답과 같은 기준으로 센다
+        detail.setPendingReviewCount(em.createQuery("select count(p) from PlateLog p join Camera c on c.id = p.cameraId"
+                + " where c.underpassId = :id and p.reviewStatus = com.mbc.puf.common.enums.ReviewStatus.PENDING", Long.class)
+                .setParameter("id", id).getSingleResult());
+        detail.setRemainingCount(em.createQuery("select count(t) from Transit t where t.underpassId = :id"
+                + " and t.status = com.mbc.puf.common.enums.TransitStatus.REMAINING", Long.class)
+                .setParameter("id", id).getSingleResult());
+        riskScoreRepository.findByUnderpassIdOrderByPredictedAtDesc(id, Limit.of(1)).stream().findFirst()
+                .ifPresent(r -> detail.setRainfallMm(r.getRainfall1hMm()));
         return detail;
     }
 

@@ -30,3 +30,6 @@ services:
       - {key: PUF_PM_SENSOR_STUB_ENABLED, value: "false"}
       - {key: SECRET_GEMINI_API_KEY, sync: false}
       - {key: PUF_GEMINI_MODEL, value: gemini-3.5-flash-lite}
+      - {key: PUF_DEMO_MODEL_STUB_ENABLED, value: "true"}
+      - {key: PUF_DEMO_CALM_SCORE_MINUTES, value: "1"}
+      - {key: PUF_DEMO_CALM_WATER_MINUTES, value: "1"}
