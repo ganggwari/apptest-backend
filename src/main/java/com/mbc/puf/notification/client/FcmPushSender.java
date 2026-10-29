@@ -161,13 +161,30 @@ public class FcmPushSender implements PushSender {
         msg.put("android", Map.of("priority", "HIGH", "notification", androidNotification));
         Map<String, Object> webpush = new LinkedHashMap<>();
         webpush.put("headers", Map.of("Urgency", "high"));
-        if (clickUrl.startsWith("https://")) {
-            webpush.put("fcm_options", Map.of("link", clickUrl));   // 웹 푸시를 눌렀을 때 열 주소 (https 만 허용됨)
+        // puf.fcm.click-url 은 프런트 주소(예: https://apptest-front.onrender.com). 알림마다 data.url(앱 경로)로 눌렀을 때 열 화면을 정한다
+        String origin = webOrigin();
+        if (!origin.isEmpty()) {
+            String path = message.data().get("url");
+            webpush.put("fcm_options", Map.of("link", origin + (path != null && path.startsWith("/") ? path : "/")));   // https 만 허용됨
         }
         // PWA(웹 푸시): 진동 패턴 + 누를 때까지 알림 유지 (웹 알림은 소리를 따로 정할 수 없어 기기 알림음을 따른다)
-        webpush.put("notification", Map.of("vibrate", List.of(300, 120, 300, 120, 600), "requireInteraction", true));
+        Map<String, Object> webNotification = new LinkedHashMap<>();
+        webNotification.put("vibrate", List.of(300, 120, 300, 120, 600));
+        webNotification.put("requireInteraction", true);
+        if (!origin.isEmpty()) {
+            webNotification.put("icon", origin + "/icons/customer-ru-192-v1.png");   // 알림 오른쪽 큰 그림(없으면 회색 'A' 글자)
+            webNotification.put("badge", origin + "/icons/push-badge-96.png");       // 상태표시줄의 작은 흰색 아이콘
+        }
+        webpush.put("notification", webNotification);
         msg.put("webpush", webpush);
         return mapper.writeValueAsString(Map.of("message", msg));
+    }
+
+    /** click-url 에서 https://호스트 부분만 쓴다(경로가 붙어 있어도 무방). https 가 아니면 빈 문자열 */
+    private String webOrigin() {
+        if (!clickUrl.startsWith("https://")) return "";
+        int slash = clickUrl.indexOf('/', 8);
+        return slash < 0 ? clickUrl : clickUrl.substring(0, slash);
     }
 
     // ---------------- OAuth 액세스 토큰 ----------------

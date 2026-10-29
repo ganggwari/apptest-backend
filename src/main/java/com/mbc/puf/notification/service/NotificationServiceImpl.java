@@ -103,7 +103,7 @@ public class NotificationServiceImpl implements NotificationService {
         streamPublisher.publishPublic("notice-new", null, new StreamPayloads.NoticeNew(noticeId, noticeTitle, important));
         // 앱·웹 푸시: 푸시 토큰을 등록한 모든 고객 기기에 한 번에 (커밋 뒤 비동기)
         pushService.sendToAllAfterCommit(new PushMessage(important ? "[긴급] 새 공지" : "새 공지", noticeTitle,
-                Map.of("category", "NOTICE", "refType", "NOTICE", "refId", String.valueOf(noticeId))));
+                Map.of("category", "NOTICE", "refType", "NOTICE", "refId", String.valueOf(noticeId), "url", "/customer-app/screen-12")));
     }
 
     @Override
@@ -119,7 +119,7 @@ public class NotificationServiceImpl implements NotificationService {
         customerRepository.save(n);
         pushToCustomer(n);
         pushService.sendToCustomerAfterCommit(customerId, new PushMessage(n.getTitle(), inquiryTitle,
-                Map.of("category", "INQUIRY", "refType", "INQUIRY", "refId", String.valueOf(inquiryId))));
+                Map.of("category", "INQUIRY", "refType", "INQUIRY", "refId", String.valueOf(inquiryId), "url", "/customer-app/screen-12")));
     }
 
     // ================= 고객 알림: 조회·읽음 =================
@@ -210,6 +210,7 @@ public class NotificationServiceImpl implements NotificationService {
         // 관리자 기기 푸시: 같은 대상(해당 지역 담당 관리자, null 이면 전체)에게 커밋 뒤 비동기로
         Map<String, String> data = new HashMap<>();
         data.put("category", String.valueOf(category));
+        data.put("url", "/admin-app/notifications");   // 눌렀을 때 열 관리자 앱 화면
         if (urgent) {
             data.put("urgent", "true");   // 앱·PWA 가 긴급 팝업/전체 화면 알림으로 띄우는 기준
         }

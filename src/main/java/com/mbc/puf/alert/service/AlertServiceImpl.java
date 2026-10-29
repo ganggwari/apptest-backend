@@ -153,7 +153,7 @@ public class AlertServiceImpl implements AlertService {
                 alertType == AlertType.FINAL ? "지하차도 진입 직전 알림" : "지하차도 접근 알림",
                 (underpassName == null ? "" : underpassName + " · ") + carNum
                         + (reason == null || reason.isBlank() ? "" : " · 사유: " + reason),
-                Map.of("category", "RISK", "refType", "ALERT", "refId", String.valueOf(alertId))),
+                Map.of("category", "RISK", "refType", "ALERT", "refId", String.valueOf(alertId), "url", "/customer-app/screen-12")),
                 (t, status) -> deliveryRepository.updateStatus(alertId, t.getId(), status));
 
         // 실제 문자 발송 연동 전까지: 긴급재난문자 형식으로 보냈다고 치고 콘솔에 남긴다

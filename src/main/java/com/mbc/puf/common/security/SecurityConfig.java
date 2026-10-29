@@ -11,6 +11,7 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 import jakarta.servlet.DispatcherType;
 
 @Configuration
@@ -19,7 +20,8 @@ import jakarta.servlet.DispatcherType;
 public class SecurityConfig {
 
 	@Bean
-	public SecurityFilterChain securityFilterChain(HttpSecurity http, JsonAuthErrorHandler errorHandler)
+	public SecurityFilterChain securityFilterChain(HttpSecurity http, JsonAuthErrorHandler errorHandler,
+			AuthTokenService authTokenService)
 			throws Exception {
 		http
 				// TODO(보안 점검): 세션 쿠키 방식이라 CSRF 대책이 필요하다. 지금은 SameSite=Lax
@@ -94,7 +96,9 @@ public class SecurityConfig {
 
 						// 그 밖의 모든 API는 기본적으로 로그인 필요 → 허용 목록에 빠뜨려도 노출되지 않는다.
 						// 역할별 제한(고객 전용, 관리자 전용)은 각 컨트롤러 메서드의 @PreAuthorize 가 담당한다.
-						.anyRequest().authenticated());
+						.anyRequest().authenticated())
+				// 세션 쿠키가 없는 요청(iOS Safari)은 토큰(Authorization 헤더 / SSE 의 access_token)으로 로그인 처리
+				.addFilterBefore(new BearerTokenFilter(authTokenService), AnonymousAuthenticationFilter.class);
 		return http.build();
 	}
 

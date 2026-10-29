@@ -134,11 +134,23 @@ public class DemoLevelService {
     public void refreshPinned() {
         pins.forEach((uid, pin) -> {
             try {
-                push(uid, pin, false);
+                push(uid, wobble(pin), false);
             } catch (RuntimeException e) {
                 log.warn("[DEMO] 고정값 갱신 실패 underpass {}: {}", uid, e.toString());
             }
         });
+    }
+
+    // 고정값을 다시 넣을 때 점수·수위를 ±0.3 안에서 조금씩 흔든다. 값이 계속 움직이는 것처럼 보이고(그래프도 이어진다),
+    // 단계 경계(점수 하한+2, 차단 수위+0.5)에서 0.2 이상 떨어져 있어서 단계는 바뀌지 않는다. 수위 0 은 그대로 0.
+    private static Pin wobble(Pin pin) {
+        var random = java.util.concurrent.ThreadLocalRandom.current();
+        BigDecimal score = pin.score().add(BigDecimal.valueOf((random.nextDouble() * 2 - 1) * 0.3))
+                .max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal water = pin.waterCm().signum() > 0
+                ? pin.waterCm().add(BigDecimal.valueOf((random.nextDouble() * 2 - 1) * 0.3)).setScale(1, RoundingMode.HALF_UP)
+                : pin.waterCm();
+        return new Pin(pin.level(), score, water);
     }
 
     // ---------------------------------------------------------------- 값 계산

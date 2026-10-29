@@ -58,6 +58,7 @@ public class WebConfigurer implements WebMvcConfigurer {
 		registry.addMapping("/**")
 		.allowedOriginPatterns(patterns.toArray(String[]::new))
 		.allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
+		.exposedHeaders("X-Auth-Token") // 로그인 응답의 토큰 헤더를 프런트(다른 도메인)가 읽을 수 있게
 		.allowCredentials(true);
 	}
 

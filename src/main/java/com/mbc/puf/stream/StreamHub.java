@@ -157,7 +157,7 @@ public class StreamHub {
     // 30초마다 heartbeat. 프록시(Nginx 등)의 유휴 연결 끊김 방지 + 죽은 연결 청소
     // A 4 KiB randomized SSE comment discourages proxy buffering; named events let clients detect stalls.
     // 스케줄러 스레드는 전송 작업을 맡기기만 하고, 실제 쓰기는 sse-sender 스레드가 한다 (느린 연결이 다른 스케줄 작업을 막지 않게)
-    @Scheduled(fixedRateString = "#{${puf.stream.heartbeat-seconds:15} * 1000}")
+    @Scheduled(fixedRateString = "#{${puf.stream.heartbeat-seconds:30} * 1000}")
     public void heartbeat() {
         if (connections.isEmpty()) return;
         try {
@@ -174,11 +174,16 @@ public class StreamHub {
     }
 
     private static final String PAD_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    private static String pad() {
+    // 4 KiB 패딩은 서버가 뜰 때 한 번만 만들어 계속 쓴다 (heartbeat 마다 연결 수만큼 새 문자열을 만들면 메모리가 낭비된다)
+    private static final String PAD = buildPad();
+    private static String buildPad() {
         var random = java.util.concurrent.ThreadLocalRandom.current();
         StringBuilder out = new StringBuilder(4096);
         for (int i = 0; i < 4096; i++) out.append(PAD_CHARS.charAt(random.nextInt(PAD_CHARS.length())));
         return out.toString();
+    }
+    private static String pad() {
+        return PAD;
     }
 
     @PreDestroy

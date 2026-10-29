@@ -33,3 +33,6 @@ services:
       - {key: PUF_DEMO_MODEL_STUB_ENABLED, value: "true"}
       - {key: PUF_DEMO_CALM_SCORE_MINUTES, value: "1"}
       - {key: PUF_DEMO_CALM_WATER_MINUTES, value: "1"}
+      - {key: PUF_FCM_CLICK_URL, value: "https://apptest-front.onrender.com"}
+      - {key: PUF_AUTH_TOKEN_SECRET, generateValue: true}
+      - {key: PUF_STREAM_HEARTBEAT_SECONDS, value: "30"}

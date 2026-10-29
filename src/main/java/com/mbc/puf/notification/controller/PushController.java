@@ -35,7 +35,7 @@ public class PushController {
     @PreAuthorize("hasRole('CUSTOMER')")
     public ApiResponse<PushService.TestResult> pushTest(@AuthenticationPrincipal LoginUser loginUser) {
         PushMessage message = new PushMessage("시험 알림", "푸시 알림이 정상적으로 도착했습니다.",
-                Map.of("refType", "TEST"));
+                Map.of("refType", "TEST", "url", "/customer-app/screen-12"));
         return ApiResponse.ok(pushService.sendTest(loginUser.id(), message));
     }
 }
