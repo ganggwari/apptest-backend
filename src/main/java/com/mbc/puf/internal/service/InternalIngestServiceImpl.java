@@ -285,7 +285,7 @@ public class InternalIngestServiceImpl implements InternalIngestService {
 			// 판별 대기(PENDING)로 들어간 건은 여기서 보내지 않는다 — 자동 마감되거나 수동 판별이 끝나는 시점에 한 번만 보낸다
 			// (대기 중에는 이 번호가 맞는지 아직 모르고, 마감될지 정정될지도 모르기 때문)
 			if (matched && plateLog.getReviewStatus() != ReviewStatus.PENDING) {
-				alertService.sendAlertsForPlate(underpass, camera.getCameraRole(), matchedCars, storedDetectedNum);
+				alertService.sendAlertsForPlate(underpass, camera, matchedCars, storedDetectedNum);
 			}
 		}
 

@@ -24,11 +24,11 @@ public class PmDailyReportPdfGenerator {
   try(var pdf=new PdfDocument(new PdfWriter(out));var doc=new Document(pdf)){
    doc.setMargins(40,40,65,40);PdfFont f=font();footer(pdf,f);var s=report.summary();
    title(doc,f,"데일리 리포트",report.date()+" · 집계 "+fmt(s.from())+" ~ "+fmt(s.to())+" · 생성 "+fmt(report.generatedAt()));
-    if(s.control()!=null){var control=s.control();section(doc,f,"01  지하차도 차단·해제 · 차단 "+control.blockCount()+"건 / 해제 "+control.releaseCount()+"건");
-     var data=new ArrayList<String[]>();for(var e:nz(control.events()))data.add(new String[]{fmt(e.createdAt()),dash(e.underpassName()),"BLOCK".equals(e.type())?"차단":"해제",e.automatic()?"자동":dash(e.operatorName()),dash(e.reason())+(e.reasonNote()==null?"":" · "+e.reasonNote())});
+    if(s.control()!=null){var control=s.control();section(doc,f,"01  지하차도 통제·해제 · 통제 "+control.blockCount()+"건 / 해제 "+control.releaseCount()+"건");
+     var data=new ArrayList<String[]>();for(var e:nz(control.events()))data.add(new String[]{fmt(e.createdAt()),dash(e.underpassName()),"BLOCK".equals(e.type())?"통제":"해제",e.automatic()?"자동":dash(e.operatorName()),dash(e.reason())+(e.reasonNote()==null?"":" · "+e.reasonNote())});
      rows(doc,f,new float[]{2,2,1,1.5f,4},new String[]{"발생 시각","지하차도","구분","담당","사유"},data);limit(doc,f,control.blockCount()+control.releaseCount(),data.size());
     }
-   if(s.control()==null) {section(doc,f,"01  지하차도 차단·해제");doc.add(p("통제 집계 데이터가 없습니다.",f,10));}
+   if(s.control()==null) {section(doc,f,"01  지하차도 통제·해제");doc.add(p("통제 집계 데이터가 없습니다.",f,10));}
    doc.add(new AreaBreak(AreaBreakType.NEXT_PAGE));
    title(doc,f,"설비 현황 요약","설비 단계 분포 · 설비 종류별 현황 · 점검 요약");
    doc.add(summary(pdf,f,s));

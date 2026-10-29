@@ -34,6 +34,9 @@ public class Alert {
     @Column(name = "car_num")
     private String carNum;
 
+    @Column(name = "camera_id")
+    private Long cameraId;   // 이 알림을 만든 번호판을 인식한 카메라 (예전 알림은 NULL)
+
     @Enumerated(EnumType.STRING)
     @Column(name = "type")
     private AlertType alertType;
@@ -82,6 +85,14 @@ public class Alert {
 
     public void setCarNum(String carNum) {
         this.carNum = carNum;
+    }
+
+    public Long getCameraId() {
+        return cameraId;
+    }
+
+    public void setCameraId(Long cameraId) {
+        this.cameraId = cameraId;
     }
 
     public AlertType getAlertType() {

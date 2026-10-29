@@ -28,7 +28,7 @@ public class DemoScenarioController {
     }
 
     @Operation(summary = "호우 시나리오 시작",
-            description = "선택한 지역의 지하차도에만 호우를 적용한다. 호우예보 → 위험도 상승(관리자 알림) → 수위 급상승·자동 차단 "
+            description = "선택한 지역의 지하차도에만 호우를 적용한다. 호우예보 → 위험도 상승(관리자 알림) → 수위 급상승·자동 통제 "
                     + "(경찰 이관 PDF·고객 알림·내비 우회) → 비 약화·수위 하강 순서로 약 2분 50초 동안 자동 진행된다. "
                     + "이미 진행 중이면 409. 단계가 바뀔 때마다 SSE data-changed(resource=demo-scenario)가 온다.")
     @PreAuthorize("hasRole('REGIONAL_ADMIN')")
@@ -37,7 +37,7 @@ public class DemoScenarioController {
         return ApiResponse.ok(scenarioService.start(request.getRegionIds(), request.getSpeed()));
     }
 
-    @Operation(summary = "호우 시나리오 중지", description = "진행 중인 시나리오를 멈추고 평소 값으로 되돌린다. 차단 해제는 직접 해야 한다.")
+    @Operation(summary = "호우 시나리오 중지", description = "진행 중인 시나리오를 멈추고 평소 값으로 되돌린다. 통제 해제는 직접 해야 한다.")
     @PreAuthorize("hasRole('REGIONAL_ADMIN')")
     @PostMapping("/stop")
     public ApiResponse<DemoScenarioDtos.Status> stop() {

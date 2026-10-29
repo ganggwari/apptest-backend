@@ -183,7 +183,7 @@ public class PlateLogReviewServiceImpl implements PlateLogReviewService {
         // 정정으로 새로 매칭된 차량이 있으면, 자동 인식 때와 같은 규칙으로 알림을 보낸다 (차단 중이면 사유 포함).
         // 원래 detected_num으로는 못 찾았던 차주에게 뒤늦게라도 알려주는 것 (카메라가 삭제된 상태면 건너뛴다)
         if (carId != null && !camera.isDeleted()) {
-            alertService.sendAlertsForPlate(underpass, camera.getCameraRole(), matchedCars, correctedNum);
+            alertService.sendAlertsForPlate(underpass, camera, matchedCars, correctedNum);
         }
 
         streamPublisher.dataChangedToAdmins(underpass.getRegionId(), "plate-log", "UPDATE", id);
@@ -213,7 +213,7 @@ public class PlateLogReviewServiceImpl implements PlateLogReviewService {
             return;
         }
         List<Car> cars = carRepository.findActiveByCarNum(CarNumber.normalize(plateLog.getDetectedNum()));
-        alertService.sendAlertsForPlate(underpass, camera.getCameraRole(), cars, plateLog.getDetectedNum());
+        alertService.sendAlertsForPlate(underpass, camera, cars, plateLog.getDetectedNum());
     }
 
     // 1) 마감 지난 대기 건을 자동 처리 상태로 바꾸는 것까지 먼저 커밋하고,

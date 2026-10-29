@@ -142,7 +142,7 @@ public class ManagerAdminServiceImpl implements ManagerAdminService {
     @Transactional
     public ManagerSummaryResponse withdraw(Long managerId, Long operatorId) {
         if (managerId.equals(operatorId)) {
-            throw new BusinessException(HttpStatus.BAD_REQUEST, "본인 계정은 마이페이지에서 탈퇴해주세요.");
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "본인 계정은 마이페이지에서 탈퇴해 주세요.");
         }
         requireNotWithdrawn(managerId);
         if (managerRepository.withdraw(managerId) == 0) {

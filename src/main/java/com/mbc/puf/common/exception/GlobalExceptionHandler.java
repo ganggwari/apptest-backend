@@ -97,11 +97,11 @@ public class GlobalExceptionHandler {
 
         if (detail.contains("numeric field overflow")) {
             return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("숫자 값이 허용 범위를 넘었습니다. 입력값을 확인해주세요."));
+                    .body(ApiResponse.error("숫자 값이 허용 범위를 넘었습니다. 입력값을 확인해 주세요."));
         }
         if (detail.contains("value too long")) {
             return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("입력한 글자 수가 허용 범위를 넘었습니다. 입력값을 확인해주세요."));
+                    .body(ApiResponse.error("입력한 글자 수가 허용 범위를 넘었습니다. 입력값을 확인해 주세요."));
         }
         if (detail.contains("duplicate key")) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
@@ -113,7 +113,7 @@ public class GlobalExceptionHandler {
         }
 
         return ResponseEntity.badRequest()
-                .body(ApiResponse.error("저장할 수 없는 값입니다. 입력값을 확인해주세요."));
+                .body(ApiResponse.error("저장할 수 없는 값입니다. 입력값을 확인해 주세요."));
     }
 
     // 경로/쿼리 파라미터 타입 오류 (예: /api/regions/abc)
@@ -139,7 +139,7 @@ public class GlobalExceptionHandler {
                     request.getRequestURI(),
                     who);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(ApiResponse.error("인증이 필요합니다. 다시 로그인해주세요."));
+                    .body(ApiResponse.error("인증이 필요합니다. 다시 로그인해 주세요."));
         }
 
         log.warn("권한 부족으로 접근 차단: {} {} (principal={})",
@@ -153,7 +153,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ApiResponse<Void>> handleAuthentication(AuthenticationException e) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(ApiResponse.error("인증이 필요합니다. 다시 로그인해주세요."));
+                .body(ApiResponse.error("인증이 필요합니다. 다시 로그인해 주세요."));
     }
 
     // 클라이언트가 연결을 끊은 경우.

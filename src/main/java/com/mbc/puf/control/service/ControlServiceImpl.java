@@ -148,8 +148,8 @@ public class ControlServiceImpl implements ControlService {
         streamPublisher.publishPublic("control-change", underpass.getRegionId(),
                 new StreamPayloads.ControlChange(underpass.getId(), underpass.getName(), status, LocalDateTime.now()));
         boolean blocked = status == UnderpassCurrentStatus.BLOCKED;
-        String title = blocked ? (auto ? "지하차도 자동 차단" : "지하차도 통제(차단)") : "지하차도 통제 해제";
-        String body = underpass.getName() + (detail == null || detail.isBlank() ? "" : " — " + detail);
+        String title = blocked ? (auto ? "지하차도 자동 통제 시작" : "지하차도 통제 시작") : "지하차도 통제 해제";
+        String body = underpass.getName() + (detail == null || detail.isBlank() ? "" : " · 사유: " + detail);
         if (blocked && auto) {
             notificationService.notifyManagersUrgent(ManagerNotificationCategory.RISK, underpass.getRegionId(), title, body,
                     "UNDERPASS", underpass.getId());
@@ -183,7 +183,7 @@ public class ControlServiceImpl implements ControlService {
             scopeResolver.requireOwnable(loginUser, underpass.getRegionId());
 
             if (underpass.getCurrentStatus() == UnderpassCurrentStatus.BLOCKED) {
-                throw new BusinessException(HttpStatus.CONFLICT, "이미 차단된 지하차도입니다.");
+                throw new BusinessException(HttpStatus.CONFLICT, "이미 통제 중인 지하차도입니다.");
             }
 
             String reason = resolveReason(request, ReasonType.BLOCK);
@@ -192,7 +192,7 @@ public class ControlServiceImpl implements ControlService {
             return doBlock(underpass, loginUser.id(), false, reason, reasonNote, null);
         });
 
-        return buildPdfResult("차단", out.notice(), out.transfer(), underpassId);
+        return buildPdfResult("통제", out.notice(), out.transfer(), underpassId);
     }
 
     /**
@@ -208,8 +208,8 @@ public class ControlServiceImpl implements ControlService {
             return;   // 이미 차단 중이면 중복 처리하지 않는다
         }
         BigDecimal block = riskPolicy.blockCm(underpass);
-        String reason = "수위 " + waterCm.stripTrailingZeros().toPlainString() + "cm — 차단 기준 "
-                + block.stripTrailingZeros().toPlainString() + "cm 도달(자동 차단)";
+        String reason = "수위 " + waterCm.stripTrailingZeros().toPlainString() + "cm · 통제 기준 "
+                + block.stripTrailingZeros().toPlainString() + "cm 도달 (자동 통제)";
         doBlock(underpass, null, true, reason, null, waterCm);
     }
 
@@ -278,7 +278,7 @@ public class ControlServiceImpl implements ControlService {
 
         // 수위가 아직 차단 기준 이상이면 해제할 수 없다 (자동 차단 기준과 같은 값)
         if (riskPolicy.reachedBlock(underpass, underpass.getCurrentWaterCm())) {
-            throw new BusinessException(HttpStatus.CONFLICT, "수위가 차단 기준("
+            throw new BusinessException(HttpStatus.CONFLICT, "수위가 통제 기준("
                     + riskPolicy.blockCm(underpass).stripTrailingZeros().toPlainString() + "cm) 이상이라 해제할 수 없습니다. 현재 수위 "
                     + underpass.getCurrentWaterCm().stripTrailingZeros().toPlainString() + "cm");
         }
@@ -327,12 +327,12 @@ public class ControlServiceImpl implements ControlService {
             LocalDateTime now = transfer.getCreatedAt() != null ? transfer.getCreatedAt() : LocalDateTime.now();
             byte[] pdf = pdfGenerator.generatePolicePdf(notice);
             UnderpassDetailResponse detail = UnderpassServiceImpl.toDetail(underpassRepository.findByIdAndDeletedFalse(underpassId).orElseThrow());
-            String filename = String.format("경찰이관_%s_%s_%s.pdf", action, notice.underpassName(), FILE_DT.format(now));
+            String filename = String.format("이관문서_%s_%s_%s.pdf", action, notice.underpassName(), FILE_DT.format(now));
             return new PdfResult(filename, pdf, detail);
         } catch (RuntimeException e) {
             log.error("[control] {} 처리는 끝났지만 PDF 생성 실패 (underpassId={}, transferId={})", action, underpassId, transfer.getId(), e);
             throw new BusinessException(HttpStatus.INTERNAL_SERVER_ERROR,
-                    "지하차도 " + action + " 처리는 완료되었지만 이관 문서(PDF) 생성에 실패했습니다. 이관 기록에서 PDF 를 다시 내려받아 주세요.");
+                    "지하차도 " + action + " 처리는 완료되었지만 이관 문서(PDF) 생성에 실패했습니다. 이관 기록에서 PDF를 다시 내려받아 주세요.");
         }
     }
 
@@ -353,7 +353,7 @@ public class ControlServiceImpl implements ControlService {
         }
 
         if (sourceEvent.getEventType() != UnderpassEventType.BLOCK) {
-            throw new BusinessException(HttpStatus.BAD_REQUEST, "차단 이벤트만 잔류차량 이관에 사용할 수 있습니다.");
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "통제 이벤트만 잔류차량 이관에 사용할 수 있습니다.");
         }
         List<String> cars = request.getCarNums().stream().map(String::trim).distinct().toList();
         if (cars.stream().anyMatch(String::isBlank)) {
@@ -426,7 +426,7 @@ public class ControlServiceImpl implements ControlService {
         String filename;
 
         if (transfer.getAgency() == TransferAgency.POLICE || isControlNotice(transfer)) {
-            String eventTypeLabel = event.getEventType() == UnderpassEventType.BLOCK ? "차단" : "해제";
+            String eventTypeLabel = event.getEventType() == UnderpassEventType.BLOCK ? "통제" : "해제";
 
             // 해제 이벤트라면 그 해제 직전의 차단 이벤트를 찾는다 (해제 후에는 current_block_event_id 가 비어 있다)
             UnderpassEvent blockEvent = event.getEventType() == UnderpassEventType.RELEASE && event.getCreatedAt() != null
@@ -438,7 +438,7 @@ public class ControlServiceImpl implements ControlService {
             pdf = pdfGenerator.generatePolicePdf(applySnapshot(
                     buildNotice(underpass, event, blockEvent, transfer.getManagerId(), transfer.getMemo()),
                     transfer.getSnapshot()));
-            filename = String.format("%s이관_%s_%s_%s.pdf", transfer.getAgency() == TransferAgency.FIRE ? "소방" : "경찰", eventTypeLabel, underpass.getName(), FILE_DT.format(transferAt));
+            filename = String.format("%s_%s_%s_%s.pdf", transfer.getAgency() == TransferAgency.FIRE ? "소방이관" : "이관문서", eventTypeLabel, underpass.getName(), FILE_DT.format(transferAt));
         } else {
             List<String> carNums = ctrlTransferCarRepository.findByCtrlTransferId(transferId)
                     .stream().map(CtrlTransferCar::getCarNum).collect(Collectors.toList());
@@ -487,7 +487,7 @@ public class ControlServiceImpl implements ControlService {
             // 차단 화면에서 해제 사유를(또는 반대로) 고르는 실수를 서버에서도 막는다
             if (preset.getType() != expectedType) {
                 throw new BusinessException(HttpStatus.BAD_REQUEST, expectedType == ReasonType.BLOCK
-                        ? "차단 사유 프리셋이 아닙니다." : "해제 사유 프리셋이 아닙니다.");
+                        ? "통제 사유 프리셋이 아닙니다." : "해제 사유 프리셋이 아닙니다.");
             }
             return preset.getContent();
         }
@@ -509,7 +509,7 @@ public class ControlServiceImpl implements ControlService {
     /** 관리자 이름 + 첫 번째 담당 지역명 */
     private ManagerInfo managerInfo(Long managerId) {
         if (managerId == null) {
-            return new ManagerInfo("시스템(자동 차단)", "-");   // 자동 차단으로 생긴 기록
+            return new ManagerInfo("시스템(자동 통제)", "-");   // 자동 차단으로 생긴 기록
         }
         Manager manager = managerRepository.findById(managerId).orElse(null);
         String name = "알 수 없음";

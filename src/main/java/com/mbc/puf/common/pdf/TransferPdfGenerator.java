@@ -118,7 +118,7 @@ public class TransferPdfGenerator {
 
     // 입구 차단 · 전광판 "입구 통제 중 · 우회 바랍니다"
     private String methodLine(ControlNoticeData d) {
-        String base = d.blockEvent() ? "입구 차단" : "입구 차단 해제";
+        String base = d.blockEvent() ? "입구 통제" : "입구 통제 해제";
         if (d.displayText() != null && !d.displayText().isBlank()) {
             return base + " · 전광판 \"" + d.displayText() + "\"";
         }

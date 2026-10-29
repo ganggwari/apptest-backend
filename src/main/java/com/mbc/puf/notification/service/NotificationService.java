@@ -15,8 +15,9 @@ public interface NotificationService {
     // ================= 고객 알림: 만들기 (다른 서비스가 호출) =================
 
     // 위험: 번호판이 매칭된 고객에게 접근 예측/진입 직전 알림이 나갈 때
+    // cameraText: 인식 카메라 안내 문구(예: "인식 카메라 #12 (진입 300m 전)"), 없으면 null
     void notifyCustomerRisk(Long customerId, Long alertId, String underpassName, String carNum, AlertType alertType,
-                            String reason);
+                            String reason, String cameraText);
 
     // 공지: 새 공지가 등록될 때 활성 고객 전체에게
     void notifyCustomersNewNotice(Long noticeId, String noticeTitle, boolean important);

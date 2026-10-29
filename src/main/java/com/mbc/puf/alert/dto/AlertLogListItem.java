@@ -5,6 +5,7 @@ import java.util.List;
 
 import com.mbc.puf.common.enums.AlertChannel;
 import com.mbc.puf.common.enums.AlertType;
+import com.mbc.puf.common.enums.CameraRole;
 import com.mbc.puf.common.enums.DeliveryStatus;
 
 /**
@@ -15,6 +16,7 @@ import com.mbc.puf.common.enums.DeliveryStatus;
  *  refId       : ALERT 면 eventId, NOTICE 면 noticeId
  *  title       : ALERT 면 "접근 알림"/"최종 알림", NOTICE 면 공지 제목
  *  region 계열, underpass 계열, car 계열 : 공지 알림은 시설·차량과 무관해서 null
+ *  cameraId/cameraRole : 번호판을 인식해 이 알림을 만든 카메라와 그 역할(APPROACH_LPR/FINAL_LPR). 공지 알림·예전 알림은 null
  *  alertType   : ALERT 만
  *  channel/platform/status : 발송(채널) 단위 목록에서만 (platform 은 푸시일 때 기기 종류 WEB/ANDROID/IOS 등)
  *  channels    : 알림 단위 목록에서만. 채널별 최종 결과 (한 채널에 여러 번 시도했으면 SUCCESS > PENDING > FAIL 우선)
@@ -35,6 +37,8 @@ public record AlertLogListItem(
         String customerName,
         Long carId,
         String carNum,
+        Long cameraId,
+        CameraRole cameraRole,
         AlertType alertType,
         AlertChannel channel,
         String platform,
@@ -50,7 +54,7 @@ public record AlertLogListItem(
 
     public AlertLogListItem withDelivery(List<ChannelResult> channels, String pushStatus) {
         return new AlertLogListItem(kind, id, deliveryId, refId, title, regionId, regionName, underpassId,
-                underpassName, customerId, customerName, carId, carNum, alertType, channel, platform, status,
-                pushStatus, channels, read, sentAt);
+                underpassName, customerId, customerName, carId, carNum, cameraId, cameraRole, alertType, channel,
+                platform, status, pushStatus, channels, read, sentAt);
     }
 }

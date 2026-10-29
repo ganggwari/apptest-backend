@@ -24,8 +24,8 @@ public class DemoScenarioState {
     /** 진행 단계 (시나리오 시간 기준 구간) */
     public enum Phase {
         FORECAST("호우 예보", 0, 10),
-        RISING("강우 시작 · 위험도 상승", 10, 60),
-        BLOCKING("수위 상승 · 자동 차단", 60, 100),
+        RISING("강우 시작 · 위험 단계 상승", 10, 60),
+        BLOCKING("수위 상승 · 자동 통제", 60, 100),
         RECOVERING("비 약화 · 수위 하강", 100, 120);
 
         public final String label;

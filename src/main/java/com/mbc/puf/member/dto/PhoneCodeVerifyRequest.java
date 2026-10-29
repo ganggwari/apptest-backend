@@ -10,7 +10,7 @@ public class PhoneCodeVerifyRequest {
     @Pattern(regexp = "^\\d{2,3}-?\\d{3,4}-?\\d{4}$", message = "전화번호 형식이 올바르지 않습니다. (예: 010-1234-5678)")
     private String phone;
 
-    @NotBlank(message = "인증코드를 입력해주세요.")
+    @NotBlank(message = "인증코드를 입력해 주세요.")
     @Pattern(regexp = "^\\d{6}$", message = "인증코드는 숫자 6자리입니다.")
     private String code;
 

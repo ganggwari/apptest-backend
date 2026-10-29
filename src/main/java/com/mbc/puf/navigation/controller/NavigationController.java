@@ -52,7 +52,7 @@ public class NavigationController {
 
     @Operation(summary = "길찾기 (위험 지하차도 우회)",
             description = "origin/destination 은 '경도,위도'. heading(도, 0~360)은 달리는 도중 재탐색할 때 현재 진행방향을 보내면 된다. "
-                    + "경로에 차단(경계 이상)된 지하차도가 있으면 피하는 경로를 돌려주고(mandatory=true, detoured=true), "
+                    + "경로에 통제(경계 이상)된 지하차도가 있으면 피하는 경로를 돌려주고(mandatory=true, detoured=true), "
                     + "관심·주의 단계 지하차도만 있으면 원래 경로를 주되 suggestedDetour 로 우회를 권한다. 로그인 필요.")
     @GetMapping("/route")
     public ApiResponse<RouteResult> route(@RequestParam(name = "origin") String origin,
@@ -66,7 +66,7 @@ public class NavigationController {
         return ApiResponse.ok(detourService.find(o[1], o[0], d[1], d[0], heading));
     }
 
-    @Operation(summary = "현재 위험 상태", description = "관심 이상이거나 차단 중인 지하차도 목록. 접속 직후 확인이나 폴링용(실시간 변화는 SSE data-changed navigation-hazard). version 이 바뀌면 상태가 바뀐 것. 로그인 필요.")
+    @Operation(summary = "현재 위험 상태", description = "관심 이상이거나 통제 중인 지하차도 목록. 접속 직후 확인이나 폴링용(실시간 변화는 SSE data-changed navigation-hazard). version 이 바뀌면 상태가 바뀐 것. 로그인 필요.")
     @GetMapping("/hazards")
     public ApiResponse<HazardState> hazards() {
         return ApiResponse.ok(hazardService.state());

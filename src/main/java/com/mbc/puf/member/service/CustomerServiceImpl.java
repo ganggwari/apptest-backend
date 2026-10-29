@@ -55,7 +55,7 @@ public class CustomerServiceImpl implements CustomerService {
     @Override
     @Transactional(readOnly = true)
     public AvailabilityResponse checkLoginId(String loginId) {
-        String target = requireText(loginId, "아이디를 입력해주세요.");
+        String target = requireText(loginId, "아이디를 입력해 주세요.");
         return new AvailabilityResponse(!customerRepository.existsByLoginIdAndWithdrawnFalse(target));
     }
 
@@ -68,7 +68,7 @@ public class CustomerServiceImpl implements CustomerService {
     @Override
     @Transactional(readOnly = true)
     public AvailabilityResponse checkPhone(String phone, Long excludeCustomerId) {
-        String target = PhoneNumber.normalize(requireText(phone, "전화번호를 입력해주세요."));
+        String target = PhoneNumber.normalize(requireText(phone, "전화번호를 입력해 주세요."));
         boolean taken = excludeCustomerId == null
                 ? customerRepository.existsByPhoneAndWithdrawnFalse(target)
                 : customerRepository.existsByPhoneAndWithdrawnFalseAndIdNot(target, excludeCustomerId);
@@ -84,7 +84,7 @@ public class CustomerServiceImpl implements CustomerService {
     @Override
     @Transactional(readOnly = true)
     public AvailabilityResponse checkEmail(String email, Long excludeCustomerId) {
-        String target = normalizeEmail(requireText(email, "이메일을 입력해주세요."));
+        String target = normalizeEmail(requireText(email, "이메일을 입력해 주세요."));
         boolean taken = excludeCustomerId == null
                 ? customerRepository.existsByEmailAndWithdrawnFalse(target)
                 : customerRepository.existsByEmailAndWithdrawnFalseAndIdNot(target, excludeCustomerId);
@@ -264,7 +264,7 @@ public class CustomerServiceImpl implements CustomerService {
             deviceTokenRepository.saveAndFlush(token);
         } catch (DataIntegrityViolationException e) {
             // 동시에 같은 토큰을 등록한 경우: 이미 저장된 행을 다시 켠다
-            throw conflict("이미 등록 중인 토큰입니다. 다시 시도해주세요.");
+            throw conflict("이미 등록 중인 토큰입니다. 다시 시도해 주세요.");
         }
         return toTokenResponse(token);
     }
@@ -290,7 +290,7 @@ public class CustomerServiceImpl implements CustomerService {
     private Customer requireActiveCustomer(Long customerId) {
         Customer customer = customerRepository.findById(customerId).orElse(null);
         if (customer == null || customer.isWithdrawn()) {
-            throw new BusinessException(HttpStatus.UNAUTHORIZED, "유효하지 않은 계정입니다. 다시 로그인해주세요.");
+            throw new BusinessException(HttpStatus.UNAUTHORIZED, "유효하지 않은 계정입니다. 다시 로그인해 주세요.");
         }
         return customer;
     }

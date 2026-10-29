@@ -34,9 +34,9 @@ CREATE TYPE verification_purpose AS ENUM ('SIGNUP', 'PASSWORD_RESET'); -- 인증
 CREATE TYPE camera_role AS ENUM ('CCTV', 'APPROACH_LPR', 'FINAL_LPR'); -- 카메라 역할(일반 CCTV/접근길목 번호판인식/진입직전 최종확인)
 CREATE TYPE recognition_status AS ENUM ('SUCCESS', 'LOW_CONFIDENCE', 'FAIL', 'UNMATCHED'); -- 번호판 인식 상태(성공/신뢰도 낮음/실패/미매칭)
 CREATE TYPE review_status AS ENUM ('NONE', 'PENDING', 'CONFIRMED', 'AUTO_PROCESSED'); -- 수동 검토 상태(필요없음/대기중/확인완료/자동처리)
-CREATE TYPE underpass_current_status AS ENUM ('NORMAL', 'BLOCKED'); -- 지하차도 현재 상태(정상/차단)
-CREATE TYPE underpass_event_type AS ENUM ('RISK_LEVEL_UP', 'RISK_LEVEL_DOWN', 'BLOCK', 'RELEASE'); -- 지하차도 이벤트 종류(위험도상승/위험도하강/차단/해제)
-CREATE TYPE risk_level AS ENUM ('안전', '관심', '주의', '경계', '심각'); -- 침수 위험도 5단계(행안부 표준 단계. 경계 이상은 수위 기준, 경계부터 자동 차단)
+CREATE TYPE underpass_current_status AS ENUM ('NORMAL', 'BLOCKED'); -- 지하차도 현재 상태(정상/통제)
+CREATE TYPE underpass_event_type AS ENUM ('RISK_LEVEL_UP', 'RISK_LEVEL_DOWN', 'BLOCK', 'RELEASE'); -- 지하차도 이벤트 종류(위험도상승/위험도하강/통제/해제)
+CREATE TYPE risk_level AS ENUM ('안전', '관심', '주의', '경계', '심각'); -- 침수 위험도 5단계(행안부 표준 단계. 경계 이상은 수위 기준, 경계부터 자동 통제)
 CREATE TYPE pm_level AS ENUM ('안전', '주의', '위험'); -- 예지보전 설비 단계(침수 위험도 5단계와 별개)
 CREATE TYPE alert_type AS ENUM ('PREDICTIVE', 'FINAL'); -- 알림 종류(사전예측/진입직전 최후확인)
 CREATE TYPE alert_channel AS ENUM ('PUSH_WEB', 'PUSH_APP', 'SMS'); -- 알림 발송 채널(웹푸시/앱푸시/문자)
@@ -45,7 +45,7 @@ CREATE TYPE device_platform AS ENUM ('WEB', 'APP'); -- 푸시 토큰 발급 환�
 CREATE TYPE transit_status AS ENUM ('IN_TRANSIT', 'EXITED', 'REMAINING'); -- 지하차도 통과 상태(진입중/정상통과/잔류)
 CREATE TYPE transit_direction AS ENUM ('UP', 'DOWN'); -- 통행 방향(상행/하행)
 CREATE TYPE transfer_agency AS ENUM ('POLICE', 'FIRE'); -- 통제정보 이관 대상(경찰/소방서)
-CREATE TYPE display_category AS ENUM ('SAFE', 'WATCH', 'CAUTION', 'BLOCK', 'RELEASE'); -- 전광판 프리셋 문구 분류(안전/관심/주의/차단/해제. 경계·심각은 차단 문구 사용)
+CREATE TYPE display_category AS ENUM ('SAFE', 'WATCH', 'CAUTION', 'BLOCK', 'RELEASE'); -- 전광판 프리셋 문구 분류(안전/관심/주의/통제/해제. 경계·심각은 통제 문구 사용)
 CREATE TYPE pm_equipment_type AS ENUM ('CCTV', 'DISPLAY', 'PUMP', 'WATER_LEVEL', 'ROAD'); -- 예지보전 설비 종류(CCTV/전광판/배수펌프/수위센서)
 CREATE TYPE pm_event_status AS ENUM ('CHECK_NEEDED', 'IN_PROGRESS', 'RESOLVED', 'ETC'); -- 예지보전 처리 상태(확인필요/점검중/조치완료/기타)
 CREATE TYPE pm_action_kind AS ENUM ('START', 'RECORD', 'RESOLVED', 'ETC'); -- 예지보전 조치 기록 종류(점검 시작/기록 추가/조치 완료/기타 종료)
@@ -55,7 +55,7 @@ CREATE TYPE customer_notification_category AS ENUM ('RISK', 'NOTICE', 'INQUIRY')
 CREATE TYPE manager_notification_category AS ENUM ('RISK', 'EQUIPMENT', 'TASK', 'SYSTEM'); -- 관리자 알림 분류(위험/설비/업무/시스템)
 CREATE TYPE notice_category AS ENUM ('INFO', 'MAINTENANCE', 'UPDATE', 'URGENT'); -- 공지 분류(안내/점검/업데이트/긴급)
 CREATE TYPE faq_category AS ENUM ('USAGE', 'NOTIFICATION', 'VEHICLE', 'ACCOUNT', 'ETC'); -- FAQ 분류(이용 방법/알림·푸시/차량·번호판/계정/기타)
-CREATE TYPE reason_type AS ENUM ('BLOCK', 'RELEASE'); -- 통제 사유 프리셋 구분(차단/해제)
+CREATE TYPE reason_type AS ENUM ('BLOCK', 'RELEASE'); -- 통제 사유 프리셋 구분(통제/해제)
 
 -- 2. 테이블 생성
 
@@ -173,13 +173,13 @@ CREATE TABLE underpass ( -- 지하차도 마스터 테이블
     river_dist DECIMAL(10,1), -- 가까운 하천까지 직선거리(m, AI 모델 입력값)
     sea_dist DECIMAL(10,1), -- 바다(해안선)까지 직선거리(m, AI 모델 입력값)
     flood_count INT NOT NULL DEFAULT 0, -- 침수 이력 횟수
-    early_block BOOLEAN NOT NULL DEFAULT FALSE, -- 선제 차단 대상 여부(관리자 지정. 침수 이력이 있거나 true면 수위 5cm에서 차단, 아니면 15cm)
+    early_block BOOLEAN NOT NULL DEFAULT FALSE, -- 선제 통제 대상 여부(관리자 지정. 침수 이력이 있거나 true면 수위 5cm에서 통제, 아니면 15cm)
     up_entry_cam_id BIGINT, -- 상행 입구 카메라 아이디
     up_exit_cam_id BIGINT, -- 상행 출구 카메라 아이디
     down_entry_cam_id BIGINT, -- 하행 입구 카메라 아이디
     down_exit_cam_id BIGINT, -- 하행 출구 카메라 아이디
     status underpass_current_status NOT NULL DEFAULT 'NORMAL', -- 현재 상태
-    block_event_id BIGINT, -- 차단 중이면 그 차단 이벤트 아이디
+    block_event_id BIGINT, -- 통제 중이면 그 통제 이벤트 아이디
     risk_level risk_level NOT NULL DEFAULT '안전', -- 현재 위험도 단계(FastAPI 수신 시마다 갱신, 오르내림 둘 다 반영)
     risk_score DECIMAL(5,2) NOT NULL DEFAULT 0, -- 현재 위험도 점수(0~100, 최신값 캐시)
     water_cm DECIMAL(5,1) NOT NULL DEFAULT 0, -- 현재 수위(cm, 수위계 최신값 캐시)
@@ -223,10 +223,10 @@ CREATE TABLE its_vms ( -- ITS 전광판(VMS) 테이블(지도 전광판 레이�
     created_at TIMESTAMP NOT NULL DEFAULT NOW() -- 등록일
 );
 
-CREATE TABLE vms_underpass ( -- 지하차도-전광판 표출 매핑 테이블(차단 정보를 어느 전광판에 띄울지, 지하차도 반경 1km 이내 쌍. 한 전광판이 여러 지하차도와 겹칠 수 있음)
+CREATE TABLE vms_underpass ( -- 지하차도-전광판 표출 매핑 테이블(통제 정보를 어느 전광판에 띄울지, 지하차도 반경 1km 이내 쌍. 한 전광판이 여러 지하차도와 겹칠 수 있음)
     its_vms_id BIGINT NOT NULL, -- 전광판 아이디
     underpass_id BIGINT NOT NULL, -- 지하차도 아이디
-    dist INT NOT NULL, -- 지하차도에서 전광판까지 직선거리(m, 300 이하 근접=차단 정보 / 초과 원거리=차단+우회 정보. 기준값은 백엔드 설정)
+    dist INT NOT NULL, -- 지하차도에서 전광판까지 직선거리(m, 300 이하 근접=통제 정보 / 초과 원거리=통제+우회 정보. 기준값은 백엔드 설정)
     PRIMARY KEY (its_vms_id, underpass_id)
 );
 
@@ -268,15 +268,15 @@ CREATE TABLE transit ( -- 지하차도 입출구 통과(잔류차량 추적) 테
 
 -- ---- 이벤트 / 알림 / 통제정보 이관 / 전광판 ----
 
-CREATE TABLE event ( -- 지하차도 이벤트 테이블(위험도상승/위험도하강/차단/해제)
+CREATE TABLE event ( -- 지하차도 이벤트 테이블(위험도상승/위험도하강/통제/해제)
     id BIGSERIAL PRIMARY KEY, -- 아이디
     underpass_id BIGINT NOT NULL, -- 지하차도 아이디
     type underpass_event_type NOT NULL, -- 이벤트 종류
     risk_level risk_level, -- 위험도 단계(RISK_LEVEL_UP/DOWN일 때만 값 있음)
     score DECIMAL(5,2), -- 이벤트 발생 시점의 위험도 점수(0~100, RISK_LEVEL_UP/DOWN일 때만)
-    water_cm DECIMAL(5,1), -- 이벤트 발생 시점의 수위(cm, 수위 때문에 단계가 바뀌었거나 자동 차단된 경우)
-    operator_id BIGINT, -- 실행한 관리자 아이디(수동 BLOCK/RELEASE일 때만, 자동 차단이면 NULL)
-    is_auto BOOLEAN NOT NULL DEFAULT FALSE, -- 시스템 자동 처리 여부(수위 기준 자동 차단)
+    water_cm DECIMAL(5,1), -- 이벤트 발생 시점의 수위(cm, 수위 때문에 단계가 바뀌었거나 자동 통제 중인 경우)
+    operator_id BIGINT, -- 실행한 관리자 아이디(수동 BLOCK/RELEASE일 때만, 자동 통제이면 NULL)
+    is_auto BOOLEAN NOT NULL DEFAULT FALSE, -- 시스템 자동 처리 여부(수위 기준 자동 통제)
     reason VARCHAR(200), -- 사유(BLOCK/RELEASE 시 프리셋 선택 또는 직접 입력)
     reason_note VARCHAR(200), -- 상세 사유(사유에 덧붙여 따로 적은 글, 없으면 NULL)
     created_at TIMESTAMP NOT NULL DEFAULT NOW() -- 발생 시각
@@ -292,7 +292,7 @@ CREATE TABLE water_level ( -- 수위계 측정값 테이블(지하차도당 센�
 
 CREATE TABLE reason_preset ( -- 이벤트 사유 프리셋 테이블
     id BIGSERIAL PRIMARY KEY, -- 아이디
-    type reason_type NOT NULL, -- 구분(BLOCK 차단 사유 / RELEASE 해제 사유)
+    type reason_type NOT NULL, -- 구분(BLOCK 통제 사유 / RELEASE 해제 사유)
     content VARCHAR(200) NOT NULL -- 사유 문구
 );
 
@@ -353,7 +353,7 @@ CREATE TABLE manager_notification ( -- 관리자 알림 센터 테이블(알림 
     body VARCHAR(255), -- 알림 내용
     ref_type VARCHAR(20), -- 눌렀을 때 이동할 대상 종류(UNDERPASS/INQUIRY 등)
     ref_id BIGINT, -- 이동할 대상 아이디
-    is_urgent BOOLEAN NOT NULL DEFAULT FALSE, -- 긴급 여부(TRUE 면 화면에 긴급 팝업, 기기 푸시도 높은 우선순위. 예: 설비 위험 진입, 수위 자동 차단)
+    is_urgent BOOLEAN NOT NULL DEFAULT FALSE, -- 긴급 여부(TRUE 면 화면에 긴급 팝업, 기기 푸시도 높은 우선순위. 예: 설비 위험 진입, 수위 자동 통제)
     created_at TIMESTAMP NOT NULL DEFAULT NOW() -- 알림 생성 시각
 );
 
@@ -364,12 +364,12 @@ CREATE TABLE manager_notification_read ( -- 관리자별 알림 읽음 기록 �
     read_at TIMESTAMP NOT NULL DEFAULT NOW() -- 읽은 시각
 );
 
-CREATE TABLE ctrl_transfer ( -- 통제정보 이관 기록 테이블(경찰: 차단/해제 시 신호조정 협조, 소방: 관리자가 잔류차량 보고 발송 시). 실제 전송 없이 PDF 출력 + 기록만
+CREATE TABLE ctrl_transfer ( -- 통제정보 이관 기록 테이블(경찰: 통제/해제 시 신호조정 협조, 소방: 관리자가 잔류차량 보고 발송 시). 실제 전송 없이 PDF 출력 + 기록만
     id BIGSERIAL PRIMARY KEY, -- 아이디
-    event_id BIGINT NOT NULL, -- 계기가 된 차단/해제 이벤트 아이디
+    event_id BIGINT NOT NULL, -- 계기가 된 통제/해제 이벤트 아이디
     agency transfer_agency NOT NULL, -- 이관 대상 기관
     memo TEXT, -- 비고
-    manager_id BIGINT, -- 발송 처리한 관리자 아이디(자동 차단으로 생긴 경찰 이관이면 NULL)
+    manager_id BIGINT, -- 발송 처리한 관리자 아이디(자동 통제으로 생긴 경찰 이관이면 NULL)
     snapshot JSONB, -- 이관 시점 내용 스냅샷(점수·수위·강우·전광판 문구·차량번호 등. PDF 재출력 시 그대로 사용)
     created_at TIMESTAMP NOT NULL DEFAULT NOW() -- 발송 시각
 );
@@ -382,7 +382,7 @@ CREATE TABLE ctrl_transfer_car ( -- 통제정보 이관 시점의 잔류차량 �
 
 CREATE TABLE display_preset ( -- 전광판 프리셋 문구 테이블
     id BIGSERIAL PRIMARY KEY, -- 아이디
-    category display_category NOT NULL, -- 문구 분류(위험도 단계/차단/해제)
+    category display_category NOT NULL, -- 문구 분류(위험도 단계/통제/해제)
     content VARCHAR(100) NOT NULL -- 문구
 );
 
@@ -393,7 +393,7 @@ CREATE TABLE display_page ( -- 전광판 페이지 테이블(전광판 1대가 �
     page_no INT NOT NULL, -- 페이지 순서
     content VARCHAR(100) NOT NULL, -- 표출 문구(프리셋 선택 또는 직접 입력)
     preset_id BIGINT, -- 사용한 프리셋 아이디(직접 입력이면 NULL)
-    updated_by BIGINT, -- 마지막 수정 관리자 아이디(수동 차단/해제 전환 시 해당 관리자, 자동 차단이면 NULL)
+    updated_by BIGINT, -- 마지막 수정 관리자 아이디(수동 통제/해제 전환 시 해당 관리자, 자동 통제이면 NULL)
     is_manual BOOLEAN NOT NULL DEFAULT FALSE, -- 수동 페이지 여부(관리자가 직접 만든 페이지 TRUE / 자동 표출이 만든 페이지 FALSE. 자동 페이지는 관리자가 수정·삭제 불가)
     updated_at TIMESTAMP NOT NULL DEFAULT NOW(), -- 마지막 수정 시각
     UNIQUE (its_vms_id, page_no) DEFERRABLE INITIALLY DEFERRED -- 페이지 번호 재정렬을 한 문장으로 하려고 커밋 시점에 검사
@@ -404,10 +404,10 @@ CREATE TABLE display_history ( -- 전광판 페이지 수정 이력 테이블
     page_id BIGINT, -- 전광판 페이지 아이디(페이지가 지워지면 NULL)
     its_vms_id BIGINT NOT NULL, -- 전광판 아이디
     underpass_id BIGINT NOT NULL, -- 원인 지하차도 아이디
-    event_id BIGINT, -- 계기가 된 차단/해제 이벤트 아이디(수동 수정이면 NULL)
+    event_id BIGINT, -- 계기가 된 통제/해제 이벤트 아이디(수동 수정이면 NULL)
     old_content VARCHAR(100), -- 변경 전 문구(최초 생성이면 NULL)
     new_content VARCHAR(100) NOT NULL, -- 변경 후 문구
-    changed_by BIGINT, -- 변경한 관리자 아이디(자동 차단에 의한 전환이면 NULL)
+    changed_by BIGINT, -- 변경한 관리자 아이디(자동 통제에 의한 전환이면 NULL)
     changed_at TIMESTAMP NOT NULL DEFAULT NOW() -- 변경 시각
 );
 

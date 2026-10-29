@@ -35,7 +35,8 @@ public class AlertLogServiceImpl implements AlertLogService {
     // 위험 알림: 알림 -> 이벤트 -> 지하차도 -> 지역, + 수신 고객
     private static final String ALERT_JOIN = " join UnderpassEvent ue on ue.id = a.eventId"
             + " join Underpass u on u.id = ue.underpassId join Region r on r.id = u.regionId"
-            + " join Customer c on c.id = a.customerId";
+            + " join Customer c on c.id = a.customerId"
+            + " left join Camera cam on cam.id = a.cameraId";   // 인식 카메라(없는 알림도 있어서 left join)
     private static final String ALERT_FROM = " from Alert a" + ALERT_JOIN;
     private static final String ALERT_DELIVERY_FROM = " from AlertDelivery d join Alert a on a.id = d.alertId"
             + ALERT_JOIN + " left join DeviceToken t on t.id = d.tokenId";
@@ -65,12 +66,13 @@ public class AlertLogServiceImpl implements AlertLogService {
         QueryConditions c = alertConditions(loginUser, scope, q, vehicle).periodIfPresent("a.sentAt", period);
         existsDelivery(c, "AlertDelivery", "alertId", "a.id", q);
         PageResponse<AlertLogListItem> result = PagedQuery.fetch(em,
-                "select a, ue.underpassId, u.name, u.regionId, r.name, c.name" + ALERT_FROM,
+                "select a, ue.underpassId, u.name, u.regionId, r.name, c.name, cam.cameraRole" + ALERT_FROM,
                 "select count(a)" + ALERT_FROM, c, " order by a.sentAt desc, a.id desc", Object[].class,
                 row -> {
                     var a = (com.mbc.puf.alert.entity.Alert) row[0];
                     return alertItem(a, null, null, null, (Long) row[1], (String) row[2], (Long) row[3],
-                            (String) row[4], (String) row[5], a.getSentAt());
+                            (String) row[4], (String) row[5], a.getSentAt(),
+                            (com.mbc.puf.common.enums.CameraRole) row[6]);
                 }, page.toParams());
         return withChannels(result, "select d.alertId, d.channel, d.status from AlertDelivery d where d.alertId in :ids");
     }
@@ -84,13 +86,14 @@ public class AlertLogServiceImpl implements AlertLogService {
                 .eqIfPresent("d.status", q.getStatus())
                 .periodIfPresent("d.sentAt", period);
         return PagedQuery.fetch(em,
-                "select d, a, ue.underpassId, u.name, u.regionId, r.name, c.name, t.platform" + ALERT_DELIVERY_FROM,
+                "select d, a, ue.underpassId, u.name, u.regionId, r.name, c.name, t.platform, cam.cameraRole" + ALERT_DELIVERY_FROM,
                 "select count(d)" + ALERT_DELIVERY_FROM, c, " order by d.sentAt desc, d.id desc", Object[].class,
                 row -> {
                     var d = (com.mbc.puf.alert.entity.AlertDelivery) row[0];
                     var a = (com.mbc.puf.alert.entity.Alert) row[1];
                     return alertItem(a, d.getId(), d.getChannel(), d.getStatus(), (Long) row[2], (String) row[3],
-                            (Long) row[4], (String) row[5], (String) row[6], d.getSentAt(), platformOf(row[7]));
+                            (Long) row[4], (String) row[5], (String) row[6], d.getSentAt(), platformOf(row[7]),
+                            (com.mbc.puf.common.enums.CameraRole) row[8]);
                 }, page.toParams());
     }
 
@@ -138,6 +141,7 @@ public class AlertLogServiceImpl implements AlertLogService {
                 .eqIfPresent("a.customerId", q.getCustomerId())
                 .containsIfPresent(q.getCustomerName(), "c.name")
                 .eqIfPresent("a.alertType", q.getAlertType())
+                .eqIfPresent("a.cameraId", q.getCameraId())
                 .carNumIfPresent(vehicle.getCarNum(), "a.carNum");
     }
 
@@ -174,19 +178,20 @@ public class AlertLogServiceImpl implements AlertLogService {
     private static AlertLogListItem alertItem(com.mbc.puf.alert.entity.Alert a, Long deliveryId, AlertChannel channel,
                                               DeliveryStatus status, Long underpassId, String underpassName,
                                               Long regionId, String regionName, String customerName,
-                                              LocalDateTime at) {
+                                              LocalDateTime at, com.mbc.puf.common.enums.CameraRole cameraRole) {
         return alertItem(a, deliveryId, channel, status, underpassId, underpassName, regionId, regionName,
-                customerName, at, null);
+                customerName, at, null, cameraRole);
     }
 
     private static AlertLogListItem alertItem(com.mbc.puf.alert.entity.Alert a, Long deliveryId, AlertChannel channel,
                                               DeliveryStatus status, Long underpassId, String underpassName,
                                               Long regionId, String regionName, String customerName,
-                                              LocalDateTime at, String platform) {
-        String title = a.getAlertType() == AlertType.FINAL ? "최종 알림" : "접근 알림";
+                                              LocalDateTime at, String platform,
+                                              com.mbc.puf.common.enums.CameraRole cameraRole) {
+        String title = a.getAlertType() == AlertType.FINAL ? "진입 직전 알림" : "접근 알림";
         return new AlertLogListItem("ALERT", a.getId(), deliveryId, a.getEventId(), title, regionId, regionName,
                 underpassId, underpassName, a.getCustomerId(), customerName, a.getCarId(), a.getCarNum(),
-                a.getAlertType(), channel, platform, status, null, null, a.isRead(), at);
+                a.getCameraId(), cameraRole, a.getAlertType(), channel, platform, status, null, null, a.isRead(), at);
     }
 
     private static AlertLogListItem noticeItem(com.mbc.puf.alert.entity.NoticeAlert na,
@@ -194,7 +199,7 @@ public class AlertLogServiceImpl implements AlertLogService {
                                                DeliveryStatus status, String title, String customerName,
                                                LocalDateTime at, String platform) {
         return new AlertLogListItem("NOTICE", na.getId(), d == null ? null : d.getId(), na.getNoticeId(), title,
-                null, null, null, null, na.getCustomerId(), customerName, null, null, null, channel, platform,
+                null, null, null, null, na.getCustomerId(), customerName, null, null, null, null, null, channel, platform,
                 status, null, null, na.isRead(), at);
     }
 

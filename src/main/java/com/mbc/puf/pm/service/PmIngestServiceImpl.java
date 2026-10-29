@@ -359,7 +359,7 @@ public class PmIngestServiceImpl implements PmIngestService {
 
     private void notify(EquipmentRow eq, PmEquipmentType type, PmLevel level, BigDecimal score, Long eventId, String title,
             List<String> reasons) {
-        StringBuilder body = new StringBuilder(String.format("%s %s %s %s 단계 (%s점)", eq.getUnderpassName(), TYPE_KO.get(type),
+        StringBuilder body = new StringBuilder(String.format("%s · %s %s · %s 단계 (%s점)", eq.getUnderpassName(), TYPE_KO.get(type),
                 eq.getName(), level.getDbValue(), score.stripTrailingZeros().toPlainString()));
         if (reasons != null && !reasons.isEmpty() && reasons.get(0) != null && !reasons.get(0).isBlank()) {
             body.append(" · ").append(reasons.get(0).trim());

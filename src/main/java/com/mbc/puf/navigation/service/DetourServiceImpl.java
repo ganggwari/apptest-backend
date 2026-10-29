@@ -90,10 +90,10 @@ public class DetourServiceImpl implements DetourService {
             Found best = search(base, required, soft, blockedNear, active, oLat, oLng, dLat, dLng, heading, version, "M");
             if (best == null) {
                 return result(base, false, true, null, passes, blockedNames, advisoryNames,
-                        "차단된 지하차도를 피하는 경로를 찾지 못했습니다.", null);
+                        "통제 중인 지하차도를 피하는 경로를 찾지 못했습니다.", null);
             }
             int extraSec = Math.max(0, best.route().duration() - base.duration());
-            String msg = "차단된 지하차도 " + blockedNames.size() + "곳을 피해 우회합니다. (약 +" + Math.round(extraSec / 60.0) + "분)";
+            String msg = "통제 중인 지하차도 " + blockedNames.size() + "곳을 피해 우회합니다. (약 +" + Math.round(extraSec / 60.0) + "분)";
             return result(best.route(), true, true, best.waypoint(), passes, blockedNames, advisoryNames, msg, null);
         }
 

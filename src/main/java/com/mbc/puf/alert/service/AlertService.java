@@ -11,17 +11,18 @@ import com.mbc.puf.common.security.LoginUser;
 public interface AlertService {
 
     // 사전예측(PREDICTIVE): APPROACH_LPR 카메라가 매칭했는데 그 지하차도 위험도가 관심 단계 이상이거나 차단 중일 때, 그 차주에게 발송
-    void sendPredictiveAlert(Long eventId, Long carId, String carNum);
+    void sendPredictiveAlert(Long eventId, Long carId, String carNum, com.mbc.puf.underpass.entity.Camera camera);
 
     // 진입직전 최후확인(FINAL): FINAL_LPR 카메라가 매칭했는데 그 지하차도가 지금 BLOCKED일 때, 그 차주에게 발송
-    void sendRoiFinalAlert(Long eventId, Long carId, String carNum);
+    void sendRoiFinalAlert(Long eventId, Long carId, String carNum, com.mbc.puf.underpass.entity.Camera camera);
 
     /**
      * 번호판이 매칭됐을 때 그 카메라 역할과 지하차도 상태를 보고 알림을 보낸다 (자동 인식·수동 정정 둘 다 이걸 쓴다).
+     * 인식한 카메라는 alert.camera_id 에 남고, 고객 알림 문구에도 카메라 번호(와 진입지점까지 거리)가 들어간다.
      *  - APPROACH_LPR : 지하차도가 차단 중이거나 위험도가 관심 단계 이상이면 접근 예측(PREDICTIVE). 차단 중이면 차단 사유가 문구에 들어간다
      *  - FINAL_LPR    : 지하차도가 차단 중이면 진입 직전(FINAL)
      */
-    void sendAlertsForPlate(com.mbc.puf.underpass.entity.Underpass underpass, com.mbc.puf.common.enums.CameraRole role,
+    void sendAlertsForPlate(com.mbc.puf.underpass.entity.Underpass underpass, com.mbc.puf.underpass.entity.Camera camera,
                             java.util.List<com.mbc.puf.car.entity.Car> cars, String carNum);
 
     // 고객용 "내 알림" 목록 (문자처럼 보여주기용). customerId는 로그인한 본인으로 고정해서 넘긴다

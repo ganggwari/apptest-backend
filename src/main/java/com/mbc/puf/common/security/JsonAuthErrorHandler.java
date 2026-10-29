@@ -23,7 +23,7 @@ public class JsonAuthErrorHandler implements AuthenticationEntryPoint, AccessDen
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response,
                          AuthenticationException authException) throws IOException {
-        write(response, HttpStatus.UNAUTHORIZED, "인증이 필요합니다. 다시 로그인해주세요.");
+        write(response, HttpStatus.UNAUTHORIZED, "인증이 필요합니다. 다시 로그인해 주세요.");
     }
 
     // 403: 로그인은 했지만 이 API를 쓸 권한이 없음

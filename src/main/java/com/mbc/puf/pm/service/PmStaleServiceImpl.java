@@ -124,7 +124,7 @@ public class PmStaleServiceImpl implements PmStaleService {
             eventRepository.saveAndFlush(ev);
             created++;
             notificationService.notifyManagers(ManagerNotificationCategory.EQUIPMENT, f.regionId(), "설비 데이터 미수신",
-                    String.format("%s %s %s 센서 데이터가 %s째 들어오지 않아요 (마지막 %s)", f.underpassName(), typeKo(f.type()), f.name(),
+                    String.format("%s · %s %s · 센서 데이터가 %s째 수신되지 않았습니다 (마지막 %s)", f.underpassName(), typeKo(f.type()), f.name(),
                             span(Duration.between(f.lastAt(), now)), f.lastAt().toString().replace('T', ' ')),
                     "PM_EVENT", ev.getId());
             streamPublisher.dataChangedToAdmins(f.regionId(), "pm-event", "CREATE", ev.getId());

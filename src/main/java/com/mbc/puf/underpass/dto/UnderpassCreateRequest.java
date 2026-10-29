@@ -17,7 +17,7 @@ public class UnderpassCreateRequest {
     @Size(max = 100, message = "이름은 100자 이하여야 합니다.")   // underpass.name VARCHAR(100)
     private String name;
 
-    @NotNull(message = "지역을 선택해주세요.")
+    @NotNull(message = "지역을 선택해 주세요.")
     private Long regionId;
 
     @Size(max = 255, message = "도로명주소는 255자 이하여야 합니다.")

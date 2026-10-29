@@ -83,10 +83,10 @@ public class SolapiSmsSender implements SmsSender {
         } catch (RestClientResponseException e) {
             // 키·발신번호 오류 등은 Solapi 가 오류 코드와 메시지를 본문으로 알려 준다 (로그에만 남기고 사용자에게는 일반 문구)
             log.error("[문자 발송 실패] HTTP {} {}", e.getStatusCode().value(), e.getResponseBodyAsString());
-            throw new BusinessException(HttpStatus.BAD_GATEWAY, "문자를 보내지 못했습니다. 잠시 후 다시 시도해주세요.");
+            throw new BusinessException(HttpStatus.BAD_GATEWAY, "문자를 보내지 못했습니다. 잠시 후 다시 시도해 주세요.");
         } catch (RestClientException e) {
             log.error("[문자 발송 실패] 연결 오류: {}", e.getMessage());
-            throw new BusinessException(HttpStatus.BAD_GATEWAY, "문자를 보내지 못했습니다. 잠시 후 다시 시도해주세요.");
+            throw new BusinessException(HttpStatus.BAD_GATEWAY, "문자를 보내지 못했습니다. 잠시 후 다시 시도해 주세요.");
         }
     }
 

@@ -76,7 +76,7 @@ public class PmDailyReportScheduler {
                 String body = String.format("%s · 신규 점검 %d건 · 점검 기록 %d건 · 미처리 %d건 · 위험 %d · 주의 %d",
                         date, s.newEventCount(), s.actionCount(), s.openEventCount(), s.levelCounts().danger(),
                         s.levelCounts().caution())
-                        + String.format(" · 싱크홀 의심 탐지 %d건 / 미처리 %d건 · 차단 %d건 / 해제 %d건",
+                        + String.format(" · 싱크홀 의심 탐지 %d건 / 미처리 %d건 · 통제 %d건 / 해제 %d건",
                                 s.sinkhole().detectedCount(),s.sinkhole().openEventCount(),s.control().blockCount(),s.control().releaseCount());
                 notificationService.notifyManagers(ManagerNotificationCategory.EQUIPMENT, regionId,
                         "데일리 리포트", body, "PM_REPORT", refId);

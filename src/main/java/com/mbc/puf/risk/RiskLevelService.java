@@ -86,9 +86,9 @@ public class RiskLevelService {
                     new StreamPayloads.RiskLevelChange(underpass.getId(), underpass.getName(), before, after,
                             up ? "UP" : "DOWN", score));
             notificationService.notifyManagers(ManagerNotificationCategory.RISK, underpass.getRegionId(),
-                    up ? "위험도 상승" : "위험도 하락",
-                    underpass.getName() + ": " + before.getDbValue() + " → " + after.getDbValue()
-                            + (water != null && water.signum() > 0 ? " (수위 " + water.stripTrailingZeros().toPlainString() + "cm)" : ""),
+                    up ? "위험 단계 상승" : "위험 단계 하강",
+                    underpass.getName() + " · " + before.getDbValue() + " → " + after.getDbValue()
+                            + (water != null && water.signum() > 0 ? " · 수위 " + water.stripTrailingZeros().toPlainString() + "cm" : ""),
                     "UNDERPASS", underpass.getId());
         }
 

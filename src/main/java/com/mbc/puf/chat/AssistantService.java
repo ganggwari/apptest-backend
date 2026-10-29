@@ -52,15 +52,15 @@ public class AssistantService {
     }
 
     public String answer(List<AssistantController.Message> messages) {
-        if (messages == null || messages.isEmpty() || messages.size() > 9) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "질문을 입력해주세요.");
+        if (messages == null || messages.isEmpty() || messages.size() > 9) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "질문을 입력해 주세요.");
         List<AssistantController.Message> rows = new ArrayList<>();
         for (var m : messages) {
             if (m == null || m.content() == null || m.content().isBlank() || m.content().length() > 2000 || !("user".equals(m.role()) || "assistant".equals(m.role())))
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "질문은 2,000자 이내로 입력해주세요.");
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "질문은 2,000자 이내로 입력해 주세요.");
             rows.add(new AssistantController.Message(m.role(), m.content().trim()));
         }
         String question = rows.get(rows.size() - 1).content();
-        if (!"user".equals(rows.get(rows.size() - 1).role())) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "질문을 입력해주세요.");
+        if (!"user".equals(rows.get(rows.size() - 1).role())) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "질문을 입력해 주세요.");
         if (key.isEmpty() || !model.matches("^gemini-[a-zA-Z0-9._-]+$")) return fallback.answer(clip(question, 500)).answer();
         try {
             String text = gemini(rows, question);

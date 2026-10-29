@@ -146,6 +146,6 @@ public class ManagerController {
             return employeeId;
         }
         throw new BusinessException(HttpStatus.BAD_REQUEST,
-                "가입 진행 정보가 없거나 만료되었습니다. 직원 확인부터 다시 진행해주세요.");
+                "가입 진행 정보가 없거나 만료되었습니다. 직원 확인부터 다시 진행해 주세요.");
     }
 }

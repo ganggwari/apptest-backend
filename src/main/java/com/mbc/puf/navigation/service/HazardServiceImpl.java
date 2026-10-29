@@ -96,7 +96,7 @@ public class HazardServiceImpl implements HazardService {
     }
 
     private HazardState.HazardView toView(Hazard h) {
-        String message = h.blocked() ? "차단 중인 지하차도입니다." : "침수 " + h.level().getDbValue() + " 단계입니다. 우회를 권합니다.";
+        String message = h.blocked() ? "통제 중인 지하차도입니다." : "침수 위험 단계 " + h.level().getDbValue() + "입니다. 우회를 권합니다.";
         return new HazardState.HazardView(h.id(), h.name(), h.lat(), h.lng(), h.level().name(), h.level().getDbValue(),
                 h.blocked(), h.radiusM(), h.lengthM() > 0 ? h.lengthM() : null, message);
     }

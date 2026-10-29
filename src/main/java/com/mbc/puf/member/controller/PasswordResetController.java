@@ -84,6 +84,6 @@ public class PasswordResetController {
 		if (value instanceof Long id) {
 			return id;
 		}
-		throw new BusinessException(HttpStatus.BAD_REQUEST, "인증 요청 정보가 없거나 만료되었습니다. 처음부터 다시 진행해주세요.");
+		throw new BusinessException(HttpStatus.BAD_REQUEST, "인증 요청 정보가 없거나 만료되었습니다. 처음부터 다시 진행해 주세요.");
 	}
 }

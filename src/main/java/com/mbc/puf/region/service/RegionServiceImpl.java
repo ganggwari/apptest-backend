@@ -87,7 +87,7 @@ public class RegionServiceImpl implements RegionService {
 
         Region unassigned = regionRepository.findByNameAndDeletedFalse(UNASSIGNED_REGION_NAME)
                 .orElseThrow(() -> new BusinessException(HttpStatus.INTERNAL_SERVER_ERROR,
-                        "'미배정' 지역이 존재하지 않습니다. 시드 데이터를 확인해주세요."));
+                        "'미배정' 지역이 존재하지 않습니다. 시드 데이터를 확인해 주세요."));
 
         // 네 작업은 한 트랜잭션: 중간에 실패하면 전부 롤백된다.
         // 소프트 삭제를 먼저 표시해야 한다: 아래 일괄 UPDATE가 실행 전에 이 변경을 DB에 반영(flush)한 뒤

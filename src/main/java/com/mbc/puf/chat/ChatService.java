@@ -35,7 +35,7 @@ public class ChatService {
         List<Object[]> rows = em.createNativeQuery("select u.id,u.name,u.status,u.risk_level,u.water_cm,r.name from underpass u join region r on r.id=u.region_id where u.is_deleted=false and (position(u.name in :question)>0 or position(r.name in :question)>0) order by u.name limit 10")
                 .setParameter("question", question).getResultList();
         if (rows.isEmpty() && question.matches(".*(전체|현황|목록|몇|통제 중|차단 중).*")) {
-            boolean blocked = question.contains("통제") || question.contains("차단");
+            boolean blocked = question.contains("통제") || question.contains("통제");
             rows = em.createNativeQuery("select u.id,u.name,u.status,u.risk_level,u.water_cm,r.name from underpass u join region r on r.id=u.region_id where u.is_deleted=false and (:blocked=false or cast(u.status as text)='BLOCKED') order by u.name limit 10")
                     .setParameter("blocked", blocked).getResultList();
             if (rows.isEmpty()) return result(blocked ? "현재 DB에 통제 중인 지하차도가 없습니다." : "현재 DB에 등록된 시설이 없습니다.", List.of());

@@ -48,7 +48,7 @@ public class DemoLevelController {
         public void setUnderpassIds(List<Long> underpassIds) { this.underpassIds = underpassIds; }
     }
 
-    @Operation(summary = "시연 대상 지하차도 현재 상태", description = "초량·북항·충장 지하차도의 현재 단계·점수·수위·차단 여부와 고정된 단계")
+    @Operation(summary = "시연 대상 지하차도 현재 상태", description = "초량·북항·충장 지하차도의 현재 단계·점수·수위·통제 여부와 고정된 단계")
     @PreAuthorize("hasRole('REGIONAL_ADMIN')")
     @GetMapping
     public ApiResponse<List<Map<String, Object>>> list() {
@@ -56,14 +56,14 @@ public class DemoLevelController {
     }
 
     @Operation(summary = "위험 단계 지정", description = "level=SAFE|WATCH|CAUTION|ALERT|SEVERE. underpassIds 를 비우면 대상 전체. "
-            + "점수·수위를 실제 모델·수위계처럼 넣으므로 알림·전광판·내비·자동 차단(경계 이상)이 그대로 일어난다.")
+            + "점수·수위를 실제 모델·수위계처럼 넣으므로 알림·전광판·내비·자동 통제(경계 이상)이 그대로 일어난다.")
     @PreAuthorize("hasRole('REGIONAL_ADMIN')")
     @PostMapping
     public ApiResponse<List<Map<String, Object>>> set(@RequestBody SetRequest request) {
         return ApiResponse.ok(levelService.set(request.getUnderpassIds(), request.getLevel()));
     }
 
-    @Operation(summary = "고정 풀기", description = "고정을 풀면 평상시 가짜 갱신이 다시 시작된다. 차단 해제는 직접 해야 한다.")
+    @Operation(summary = "고정 풀기", description = "고정을 풀면 평상시 가짜 갱신이 다시 시작된다. 통제 해제는 직접 해야 한다.")
     @PreAuthorize("hasRole('REGIONAL_ADMIN')")
     @DeleteMapping
     public ApiResponse<List<Map<String, Object>>> release(@RequestBody(required = false) ReleaseRequest request) {

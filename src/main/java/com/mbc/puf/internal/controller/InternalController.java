@@ -58,7 +58,7 @@ public class InternalController {
     }
 
     // 수위계 측정값 수신 (지하차도당 센서 1개의 단일값, cm). 수위가 차단 기준에 닿으면 이 호출 안에서 자동 차단까지 일어난다
-    @Operation(summary = "수위 수신 (수위계)", description = "지하차도당 센서 1개의 단일값(cm). 수위가 차단 기준에 닿으면 이 호출 안에서 자동 차단(이벤트·전광판·경찰 이관·알림)까지 일어난다. 응답에 riskLevel, status, autoBlocked 가 있다.")
+    @Operation(summary = "수위 수신 (수위계)", description = "지하차도당 센서 1개의 단일값(cm). 수위가 통제 기준에 닿으면 이 호출 안에서 자동 통제(이벤트·전광판·경찰 이관·알림)까지 일어난다. 응답에 riskLevel, status, autoBlocked 가 있다.")
     @PostMapping("/water-levels")
     public ResponseEntity<ApiResponse<WaterLevelResponse>> receiveWaterLevel(
             @Valid @RequestBody WaterLevelCreateRequest request) {

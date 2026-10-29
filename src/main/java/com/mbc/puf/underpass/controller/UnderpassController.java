@@ -42,7 +42,7 @@ import jakarta.validation.Valid;
 
 /** 지하차도 등록·관리 및 차단/해제(MP-10). 목록·상세 조회(CP-05~07)는 로그인 없이 공개,
  *  나머지는 관리자 전용(메서드별 @PreAuthorize) */
-@Tag(name = "지하차도", description = "목록·상세는 공개, 등록·수정·삭제는 담당 지역 관리자(차단·해제는 '통제' 태그의 /api/control)")
+@Tag(name = "지하차도", description = "목록·상세는 공개, 등록·수정·삭제는 담당 지역 관리자(통제·해제는 '통제' 태그의 /api/control)")
 @RestController
 @RequestMapping("/api/underpasses")
 public class UnderpassController {
@@ -62,7 +62,7 @@ public class UnderpassController {
      *  sort     : NAME(가나다순, 기본) / RISK_SCORE(최신 위험점수 높은 순) / LATEST(최근 등록순)
      *  page, size : 공통 Page 조건. 지도에 한 번에 뿌리는 용도가 있어서 이 목록만 size 최대 500
      */
-    @Operation(summary = "지하차도 목록", description = "scope=MINE 이면 로그인한 관리자의 담당 지역만. 각 항목의 manageable 이 false 면 내 시설이 아니므로 차단·수정 버튼을 막아주세요")
+    @Operation(summary = "지하차도 목록", description = "scope=MINE 이면 로그인한 관리자의 담당 지역만. 각 항목의 manageable 이 false 면 내 시설이 아니므로 통제·수정 버튼을 막아 주세요")
     @GetMapping
     public ApiResponse<PageResponse<UnderpassListItem>> list(
             @AuthenticationPrincipal LoginUser loginUser,
@@ -105,7 +105,7 @@ public class UnderpassController {
     }
 
     // 지하차도 등록 (201 Created). REGIONAL_ADMIN은 본인 담당 지역만 선택 가능
-    @Operation(summary = "지하차도 등록", description = "담당 지역에만 등록할 수 있다(201). earlyBlock=true 면 수위 5cm 에서 차단하는 조기 차단 대상이 된다.")
+    @Operation(summary = "지하차도 등록", description = "담당 지역에만 등록할 수 있다(201). earlyBlock=true 면 수위 5cm 에서 통제하는 조기 통제 대상이 된다.")
     @PreAuthorize("hasRole('REGIONAL_ADMIN')")
     @PostMapping
     public ResponseEntity<ApiResponse<UnderpassDetailResponse>> create(
@@ -117,7 +117,7 @@ public class UnderpassController {
     }
 
     // 지하차도 정보 수정 (current_status 제외). REGIONAL_ADMIN은 본인 담당 지역 것만 가능
-    @Operation(summary = "지하차도 정보 수정", description = "담당 지역 것만 수정할 수 있다. 차단 상태는 여기서 바꿀 수 없고 /api/control 의 차단·해제를 쓴다.")
+    @Operation(summary = "지하차도 정보 수정", description = "담당 지역 것만 수정할 수 있다. 통제 상태는 여기서 바꿀 수 없고 /api/control 의 통제·해제를 쓴다.")
     @PreAuthorize("hasRole('REGIONAL_ADMIN')")
     @PutMapping("/{id}")
     public ApiResponse<UnderpassDetailResponse> update(
@@ -187,7 +187,7 @@ public class UnderpassController {
      *  startDate~endDate : 공통 Period 조건 (endDate 당일 포함)
      *  page, size        : 공통 Page 조건 (예전엔 List 전체 반환)
      */
-    @Operation(summary = "제어 이력", description = "차단·해제·위험도 변화와 전광판 조작을 합친 이력(최신순). kind=EVENT 면 차단/해제/위험도 변화만, DISPLAY 면 전광판 조작만, 생략하면 전체.")
+    @Operation(summary = "제어 이력", description = "통제·해제·위험도 변화와 전광판 조작을 합친 이력(최신순). kind=EVENT 면 통제/해제/위험도 변화만, DISPLAY 면 전광판 조작만, 생략하면 전체.")
     @PreAuthorize("hasRole('REGIONAL_ADMIN')")
     @GetMapping("/{id}/events")
     public ApiResponse<PageResponse<ControlHistoryItem>> events(

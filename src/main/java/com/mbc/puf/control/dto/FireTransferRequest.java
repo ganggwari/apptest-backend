@@ -8,7 +8,7 @@ import java.util.List;
 /** 소방 이관 요청 (잔류차량 번호 목록 + 비고) */
 public class FireTransferRequest {
 
-    @NotNull(message = "차단 이벤트 아이디는 필수입니다.")
+    @NotNull(message = "통제 이벤트 아이디는 필수입니다.")
     private Long eventId;
 
     @Size(max = 500)

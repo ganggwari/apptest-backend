@@ -37,7 +37,7 @@ import java.nio.charset.StandardCharsets;
  *  - 이관 기록 목록 조회
  *  - 이관 기록 단건 PDF 재출력
  */
-@Tag(name = "통제(차단·해제·이관)", description = "차단/해제 사유 프리셋, 차단·해제, 경찰·소방 이관 문서. 모두 관리자 전용이며 담당 지역만 가능")
+@Tag(name = "통제(시작·해제·이관)", description = "통제/해제 사유 프리셋, 통제·해제, 경찰·소방 이관 문서. 모두 관리자 전용이며 담당 지역만 가능")
 @RestController
 @RequestMapping("/api/control")
 public class ControlController {
@@ -55,7 +55,7 @@ public class ControlController {
      * 차단/해제 사유 프리셋 목록 (로그인한 관리자 모두 조회 가능)
      *  type : BLOCK(차단 사유) / RELEASE(해제 사유), 안 보내면 전체
      */
-    @Operation(summary = "차단/해제 사유 프리셋", description = "type=BLOCK 이면 차단 사유, type=RELEASE 이면 해제 사유만 내려간다")
+    @Operation(summary = "통제/해제 사유 프리셋", description = "type=BLOCK 이면 통제 사유, type=RELEASE 이면 해제 사유만 내려간다")
     @GetMapping("/reason-presets")
     @PreAuthorize("isAuthenticated() and principal.manager")
     public ResponseEntity<ApiResponse<List<ReasonPresetItem>>> getReasonPresets(
@@ -73,7 +73,7 @@ public class ControlController {
      *  - 상세 사유: reasonNote(200자). 사유와 함께 저장되고 PDF 의 '상세 사유' 칸에 들어간다. 프리셋이 '기타'이면 필수(없으면 400).
      *  - 전광판 문구: displayContent(직접 입력, 100자) 또는 displayPresetId(차단 문구 프리셋). 둘 다 없으면 기본 차단 문구.
      */
-    @Operation(summary = "지하차도 차단", description = "경찰 이관 PDF 를 돌려준다. body(모두 선택): presetId/reason = 사유(프리셋 또는 직접 입력), reasonNote = 사유에 덧붙이는 상세 사유(200자, 저장되고 PDF 에 '상세 사유'로 들어감, 프리셋이 '기타'이면 필수), displayPresetId/displayContent = 전광판 문구(프리셋 또는 직접 입력, 직접 입력이 우선, 둘 다 없으면 기본 차단 문구)")
+    @Operation(summary = "지하차도 통제", description = "경찰 이관 PDF를 돌려준다. body(모두 선택): presetId/reason = 사유(프리셋 또는 직접 입력), reasonNote = 사유에 덧붙이는 상세 사유(200자, 저장되고 PDF 에 '상세 사유'로 들어감, 프리셋이 '기타'이면 필수), displayPresetId/displayContent = 전광판 문구(프리셋 또는 직접 입력, 직접 입력이 우선, 둘 다 없으면 기본 통제 문구)")
     @PostMapping("/underpasses/{id}/block")
     @PreAuthorize("isAuthenticated() and principal.manager")
     public ResponseEntity<byte[]> block(
@@ -91,7 +91,7 @@ public class ControlController {
      * POST /api/control/underpasses/{id}/release
      * 지하차도 해제 + 경찰 이관 PDF 반환. body 는 차단과 같고, 전광판 문구는 해제 문구 프리셋만 고를 수 있다.
      */
-    @Operation(summary = "지하차도 해제", description = "경찰 이관 PDF 를 돌려준다. body 는 차단과 같고(사유 프리셋·직접 입력·상세 사유 reasonNote, '기타'이면 상세 사유 필수), 전광판 문구는 해제 문구 프리셋만 고를 수 있다")
+    @Operation(summary = "지하차도 해제", description = "경찰 이관 PDF를 돌려준다. body 는 통제과 같고(사유 프리셋·직접 입력·상세 사유 reasonNote, '기타'이면 상세 사유 필수), 전광판 문구는 해제 문구 프리셋만 고를 수 있다")
     @PostMapping("/underpasses/{id}/release")
     @PreAuthorize("isAuthenticated() and principal.manager")
     public ResponseEntity<byte[]> release(
@@ -110,7 +110,7 @@ public class ControlController {
      * 소방 이관 (잔류차량 목록 제출) + PDF 반환.
      * 관리자가 잔류차량 확인 후 직접 버튼을 눌러 제출하는 수동 방식.
      */
-    @Operation(summary = "소방 이관", description = "잔류차량 번호 목록과 메모를 제출하면 소방 이관 기록을 저장하고 PDF 를 돌려준다. 관리자가 직접 누르는 수동 방식이며 실제 전송은 하지 않는다. SSE data-changed(fire-transfer)가 나간다.")
+    @Operation(summary = "소방 이관", description = "잔류차량 번호 목록과 메모를 제출하면 소방 이관 기록을 저장하고 PDF를 돌려준다. 관리자가 직접 누르는 수동 방식이며 실제 전송은 하지 않는다. SSE data-changed(fire-transfer)가 나간다.")
     @PostMapping("/underpasses/{id}/fire-transfer")
     @PreAuthorize("isAuthenticated() and principal.manager")
     public ResponseEntity<byte[]> fireTransfer(
@@ -128,7 +128,7 @@ public class ControlController {
      * GET /api/control/underpasses/{id}/transfers
      * 특정 지하차도의 이관 기록 목록 (최신순).
      */
-    @Operation(summary = "이관 기록 목록", description = "그 지하차도의 경찰·소방 이관 기록을 최신순으로 준다. 자동 차단 건은 처리자가 없고 '시스템(자동 차단)' 으로 표시된다.")
+    @Operation(summary = "이관 기록 목록", description = "그 지하차도의 경찰·소방 이관 기록을 최신순으로 준다. 자동 통제 건은 처리자가 없고 '시스템(자동 통제)' 으로 표시된다.")
     @GetMapping("/underpasses/{id}/transfers")
     @PreAuthorize("isAuthenticated() and principal.manager")
     public ResponseEntity<ApiResponse<List<CtrlTransferItem>>> getTransferHistory(
@@ -144,7 +144,7 @@ public class ControlController {
      * GET /api/control/transfers/{transferId}/pdf
      * 저장된 이관 기록으로 동일 PDF 재생성 (재출력).
      */
-    @Operation(summary = "이관 PDF 재출력", description = "저장된 이관 기록(당시 값 스냅샷)으로 같은 PDF 를 다시 만들어 준다.")
+    @Operation(summary = "이관 PDF 재출력", description = "저장된 이관 기록(당시 값 스냅샷)으로 같은 PDF를 다시 만들어 준다.")
     @GetMapping("/transfers/{transferId}/pdf")
     @PreAuthorize("isAuthenticated() and principal.manager")
     public ResponseEntity<byte[]> redownloadPdf(@AuthenticationPrincipal LoginUser loginUser,

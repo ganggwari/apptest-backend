@@ -72,7 +72,7 @@ public class ManagerServiceImpl implements ManagerService {
             throw new BusinessException(HttpStatus.UNAUTHORIZED, "아이디 또는 비밀번호가 올바르지 않습니다.");
         }
         if (manager.getStatus() == ManagerStatus.PENDING) {
-            throw new BusinessException(HttpStatus.FORBIDDEN, "승인 대기 중입니다. 잠시 후 다시 로그인해주세요.");
+            throw new BusinessException(HttpStatus.FORBIDDEN, "승인 대기 중입니다. 잠시 후 다시 로그인해 주세요.");
         }
         if (manager.getStatus() != ManagerStatus.ACTIVE) {
             throw new BusinessException(HttpStatus.FORBIDDEN, "사용할 수 없는 계정입니다.");
@@ -87,7 +87,7 @@ public class ManagerServiceImpl implements ManagerService {
     @Transactional(readOnly = true)
     public AvailabilityResponse checkLoginId(String loginId) {
         if (loginId == null || loginId.isBlank()) {
-            throw new BusinessException(HttpStatus.BAD_REQUEST, "아이디를 입력해주세요.");
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "아이디를 입력해 주세요.");
         }
         return new AvailabilityResponse(!managerRepository.existsByLoginId(loginId.trim()));
     }
@@ -104,7 +104,7 @@ public class ManagerServiceImpl implements ManagerService {
 
         if (employee == null) {
             throw new BusinessException(HttpStatus.NOT_FOUND,
-                    "일치하는 직원 정보가 없습니다. 이름, 생년월일, 전화번호를 확인해주세요.");
+                    "일치하는 직원 정보가 없습니다. 이름, 생년월일, 전화번호를 확인해 주세요.");
         }
         assertNoActiveAccount(employee.getId());
 
@@ -240,14 +240,14 @@ public class ManagerServiceImpl implements ManagerService {
     private Manager requireActiveManager(Long managerId) {
         Manager manager = managerRepository.findById(managerId).orElse(null);
         if (manager == null || manager.getStatus() != ManagerStatus.ACTIVE) {
-            throw new BusinessException(HttpStatus.UNAUTHORIZED, "유효하지 않은 계정입니다. 다시 로그인해주세요.");
+            throw new BusinessException(HttpStatus.UNAUTHORIZED, "유효하지 않은 계정입니다. 다시 로그인해 주세요.");
         }
         return manager;
     }
 
     private Employee requireEmployee(Long employeeId) {
         return employeeRepository.findById(employeeId).orElseThrow(() -> new BusinessException(
-                HttpStatus.BAD_REQUEST, "직원 정보를 찾을 수 없습니다. 처음부터 다시 진행해주세요."));
+                HttpStatus.BAD_REQUEST, "직원 정보를 찾을 수 없습니다. 처음부터 다시 진행해 주세요."));
     }
 
     private void assertNoActiveAccount(Long employeeId) {

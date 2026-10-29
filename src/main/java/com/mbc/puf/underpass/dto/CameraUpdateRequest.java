@@ -10,7 +10,7 @@ import jakarta.validation.constraints.Size;
 /** 카메라 수정 요청 */
 public class CameraUpdateRequest {
 
-    @NotNull(message = "카메라 역할을 선택해주세요.")
+    @NotNull(message = "카메라 역할을 선택해 주세요.")
     private CameraRole cameraRole;
 
     @Size(max = 255, message = "스트림 주소는 255자 이하여야 합니다.")

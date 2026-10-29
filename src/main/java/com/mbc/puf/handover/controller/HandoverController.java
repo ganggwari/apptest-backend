@@ -58,7 +58,7 @@ public class HandoverController {
         return ApiResponse.ok(handoverService.preview(loginUser, shiftId));
     }
 
-    @Operation(summary = "인수인계 작성", description = "지금 시점의 자동 집계(통제·위험 단계 변화·예지보전, 처리 중 점검과 차단·위험 지하차도 이월)를 스냅샷으로 저장하고 수기 메모를 붙인다")
+    @Operation(summary = "인수인계 작성", description = "지금 시점의 자동 집계(통제·위험 단계 변화·예지보전, 처리 중 점검과 통제·위험 지하차도 이월)를 스냅샷으로 저장하고 수기 메모를 붙인다")
     @PostMapping
     public ResponseEntity<ApiResponse<HandoverDetail>> create(@AuthenticationPrincipal LoginUser loginUser,
                                                               @Valid @RequestBody HandoverCreateRequest request) {

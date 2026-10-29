@@ -125,10 +125,10 @@ public class UnderpassServiceImpl implements UnderpassService {
         if (scope == ListScope.MINE) {
             // 내 담당 지역만. 관리자가 아니면 거절, regionId 를 주면 그 지역이 내 담당일 때만(아니면 403)
             if (loginUser == null) {
-                throw new BusinessException(HttpStatus.UNAUTHORIZED, "인증이 필요합니다. 다시 로그인해주세요.");
+                throw new BusinessException(HttpStatus.UNAUTHORIZED, "인증이 필요합니다. 다시 로그인해 주세요.");
             }
             if (!loginUser.isManager()) {
-                throw new BusinessException(HttpStatus.FORBIDDEN, "scope=MINE 은 관리자만 사용할 수 있습니다.");
+                throw new BusinessException(HttpStatus.FORBIDDEN, "scope=MINE은 관리자만 사용할 수 있습니다.");
             }
             c.inIfPresent("u.regionId", scopeResolver.regionsOf(loginUser, regionId));
         } else {

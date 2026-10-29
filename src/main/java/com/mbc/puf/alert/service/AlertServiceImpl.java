@@ -22,6 +22,7 @@ import com.mbc.puf.common.enums.CameraRole;
 import com.mbc.puf.common.enums.RiskLevel;
 import com.mbc.puf.common.enums.UnderpassCurrentStatus;
 import com.mbc.puf.common.enums.UnderpassEventType;
+import com.mbc.puf.underpass.entity.Camera;
 import com.mbc.puf.underpass.entity.Underpass;
 import com.mbc.puf.underpass.entity.UnderpassEvent;
 import com.mbc.puf.underpass.repository.UnderpassEventRepository;
@@ -52,7 +53,9 @@ public class AlertServiceImpl implements AlertService {
             + " join Underpass u on u.id = ue.underpassId";
 
     // 고객 "내 알림": 지하차도 이름 + 수신 전화번호까지
-    private static final String MY_FROM = ADMIN_FROM + " join Customer c on c.id = a.customerId";
+    // (인식 카메라는 없는 알림도 있어서 left join)
+    private static final String MY_FROM = ADMIN_FROM + " join Customer c on c.id = a.customerId"
+            + " left join Camera cam on cam.id = a.cameraId";
 
     private final AlertRepository alertRepository;
     private final AlertDeliveryRepository deliveryRepository;
@@ -84,24 +87,25 @@ public class AlertServiceImpl implements AlertService {
 
     @Override
     @Transactional
-    public void sendPredictiveAlert(Long eventId, Long carId, String carNum) {
+    public void sendPredictiveAlert(Long eventId, Long carId, String carNum, Camera camera) {
         carRepository.findById(carId)
-                .ifPresent(car -> insert(eventId, car.getCustomerId(), carId, carNum, AlertType.PREDICTIVE));
+                .ifPresent(car -> insert(eventId, car.getCustomerId(), carId, carNum, AlertType.PREDICTIVE, camera));
     }
 
     @Override
     @Transactional
-    public void sendRoiFinalAlert(Long eventId, Long carId, String carNum) {
+    public void sendRoiFinalAlert(Long eventId, Long carId, String carNum, Camera camera) {
         carRepository.findById(carId)
-                .ifPresent(car -> insert(eventId, car.getCustomerId(), carId, carNum, AlertType.FINAL));
+                .ifPresent(car -> insert(eventId, car.getCustomerId(), carId, carNum, AlertType.FINAL, camera));
     }
 
     @Override
     @Transactional
-    public void sendAlertsForPlate(Underpass underpass, CameraRole role, List<Car> cars, String carNum) {
+    public void sendAlertsForPlate(Underpass underpass, Camera camera, List<Car> cars, String carNum) {
         if (cars == null || cars.isEmpty()) {
             return;
         }
+        CameraRole role = camera.getCameraRole();
         boolean blocked = underpass.getCurrentStatus() == UnderpassCurrentStatus.BLOCKED
                 && underpass.getCurrentBlockEventId() != null;
         if (role == CameraRole.APPROACH_LPR && (blocked || underpass.getCurrentRiskLevel().atLeast(RiskLevel.WATCH))) {
@@ -110,14 +114,14 @@ public class AlertServiceImpl implements AlertService {
                     : eventRepository.findFirstByUnderpassIdAndEventTypeOrderByCreatedAtDescIdDesc(underpass.getId(),
                             UnderpassEventType.RISK_LEVEL_UP).map(UnderpassEvent::getId).orElse(null);
             if (eventId != null) {
-                cars.forEach(car -> sendPredictiveAlert(eventId, car.getId(), carNum));
+                cars.forEach(car -> sendPredictiveAlert(eventId, car.getId(), carNum, camera));
             }
         } else if (role == CameraRole.FINAL_LPR && blocked) {
-            cars.forEach(car -> sendRoiFinalAlert(underpass.getCurrentBlockEventId(), car.getId(), carNum));
+            cars.forEach(car -> sendRoiFinalAlert(underpass.getCurrentBlockEventId(), car.getId(), carNum, camera));
         }
     }
 
-    private void insert(Long eventId, Long customerId, Long carId, String carNum, AlertType alertType) {
+    private void insert(Long eventId, Long customerId, Long carId, String carNum, AlertType alertType, Camera camera) {
         if (inCooldown(eventId, carId, alertType)) {
             log.info("[alert] 쿨다운으로 건너뜀: carId={} type={} eventId={} ({}초 안에 같은 알림을 보냄)", carId, alertType, eventId,
                     cooldownSeconds);
@@ -128,6 +132,7 @@ public class AlertServiceImpl implements AlertService {
         alert.setCustomerId(customerId);
         alert.setCarId(carId);
         alert.setCarNum(carNum);
+        alert.setCameraId(camera == null ? null : camera.getId());
         alert.setAlertType(alertType);
         alertRepository.saveAndFlush(alert);  // flush → id 확보
 
@@ -140,7 +145,10 @@ public class AlertServiceImpl implements AlertService {
                 .setParameter("id", eventId).getResultList();
         String underpassName = info.isEmpty() ? null : (String) info.get(0)[0];
         String reason = info.isEmpty() ? null : (String) info.get(0)[1];
-        notificationService.notifyCustomerRisk(customerId, alert.getId(), underpassName, carNum, alertType, reason);
+        // 고객에게 보이는 문구에는 어느 카메라에서 인식됐는지(번호 + 진입지점까지 거리)도 넣는다
+        String cameraText = camera == null ? null : MyAlertItem.cameraLabel(camera.getId(), camera.getDistanceM());
+        notificationService.notifyCustomerRisk(customerId, alert.getId(), underpassName, carNum, alertType, reason,
+                cameraText);
 
         // 푸시: 그 고객의 사용 중인 기기마다 발송 기록(PENDING)을 만들고, 커밋 뒤 FCM 으로 보내 결과(SUCCESS/FAIL)로 바꾼다
         List<DeviceToken> tokens = pushService.activeTokens(customerId);
@@ -152,6 +160,7 @@ public class AlertServiceImpl implements AlertService {
         pushService.sendAfterCommit(tokens, new PushMessage(
                 alertType == AlertType.FINAL ? "지하차도 진입 직전 알림" : "지하차도 접근 알림",
                 (underpassName == null ? "" : underpassName + " · ") + carNum
+                        + (cameraText == null ? "" : " · " + cameraText)
                         + (reason == null || reason.isBlank() ? "" : " · 사유: " + reason),
                 Map.of("category", "RISK", "refType", "ALERT", "refId", String.valueOf(alertId), "url", "/customer-app/screen-12")),
                 (t, status) -> deliveryRepository.updateStatus(alertId, t.getId(), status));
@@ -159,8 +168,8 @@ public class AlertServiceImpl implements AlertService {
         // 실제 문자 발송 연동 전까지: 긴급재난문자 형식으로 보냈다고 치고 콘솔에 남긴다
         // (회원가입 없이도 번호판 매칭만으로 수신 가능하다는 컨셉이라 "앱 푸시"가 아니라 "문자"로 표기)
         log.info("\n===== [긴급재난문자 발송!!!] =====\n대상 고객ID: {}\n차량번호: {}\n" +
-                "알림종류: {}\n계기 이벤트ID: {}\n==========================", customerId, carNum,
-                alertType, eventId);
+                "알림종류: {}\n계기 이벤트ID: {}\n인식 카메라ID: {}\n==========================", customerId, carNum,
+                alertType, eventId, camera == null ? null : camera.getId());
     }
 
     // 같은 차량에 같은 종류 알림을 같은 지하차도에서 방금 보냈으면 다시 보내지 않는다 (정체로 접근 카메라를 계속 지나는 경우 등)
@@ -199,14 +208,15 @@ public class AlertServiceImpl implements AlertService {
                 .eqIfPresent("a.alertType", alertType)
                 .periodIfPresent("a.sentAt", period);
 
-        return PagedQuery.fetch(em, "select a, u.name, c.phone, ue.eventType, ue.reason" + MY_FROM,
+        return PagedQuery.fetch(em, "select a, u.name, c.phone, ue.eventType, ue.reason, cam.cameraRole, cam.distanceM" + MY_FROM,
                 "select count(a)" + MY_FROM, c,
                 " order by a.sentAt desc, a.id desc", Object[].class, row -> {
                     Alert a = (Alert) row[0];
                     // 계기 이벤트가 차단이면 "통제 중", 그 사유가 있으면 문구에 같이 넣는다
                     boolean blocked = row[3] == UnderpassEventType.BLOCK;
                     return new MyAlertItem(a.getId(), (String) row[1], a.getCarNum(), (String) row[2],
-                            a.getAlertType(), a.getSentAt(), blocked, (String) row[4]);
+                            a.getAlertType(), a.getSentAt(), blocked, (String) row[4],
+                            a.getCameraId(), (com.mbc.puf.common.enums.CameraRole) row[5], (Integer) row[6]);
                 }, page.toParams());
     }
 }

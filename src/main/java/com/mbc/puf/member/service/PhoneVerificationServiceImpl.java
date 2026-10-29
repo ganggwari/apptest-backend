@@ -72,7 +72,7 @@ public class PhoneVerificationServiceImpl implements PhoneVerificationService {
     @Transactional(readOnly = true)
     public void assertSignupVerified(String phone) {
         if (repository.countByPhoneAndPurposeAndVerifiedAtAfter(phone, SIGNUP, verifiedSince()) == 0) {
-            throw badRequest("전화번호 인증이 필요합니다. 인증 후 " + verifiedValidMinutes + "분 이내에 가입을 완료해주세요.");
+            throw badRequest("전화번호 인증이 필요합니다. 인증 후 " + verifiedValidMinutes + "분 이내에 가입을 완료해 주세요.");
         }
     }
 
@@ -109,7 +109,7 @@ public class PhoneVerificationServiceImpl implements PhoneVerificationService {
                 ? repository.countByCustomerIdAndPurposeAndVerifiedAtAfter(target.customerId(), RESET, verifiedSince())
                 : repository.countByManagerIdAndPurposeAndVerifiedAtAfter(target.managerId(), RESET, verifiedSince());
         if (count == 0) {
-            throw badRequest("전화번호 인증이 필요합니다. 인증 후 " + verifiedValidMinutes + "분 이내에 비밀번호를 변경해주세요.");
+            throw badRequest("전화번호 인증이 필요합니다. 인증 후 " + verifiedValidMinutes + "분 이내에 비밀번호를 변경해 주세요.");
         }
     }
 
@@ -129,21 +129,21 @@ public class PhoneVerificationServiceImpl implements PhoneVerificationService {
         verify.setCode(code);
         verify.setExpiresAt(now.plusMinutes(codeTtlMinutes));   // 만료 시각도 DB 시계 기준
         repository.save(verify);
-        smsSender.send(verify.getPhone(), title + " [" + code + "] " + codeTtlMinutes + "분 이내에 입력해주세요.");
+        smsSender.send(verify.getPhone(), title + " [" + code + "] " + codeTtlMinutes + "분 이내에 입력해 주세요.");
     }
 
     // TODO(2차): 코드 입력 실패 횟수 제한 (6자리 코드 무차별 대입 방지)
     private void check(Optional<PhoneVerify> latest, String code) {
         PhoneVerify verify = latest.orElse(null);
         if (verify == null) {
-            throw badRequest("인증코드를 먼저 요청해주세요.");
+            throw badRequest("인증코드를 먼저 요청해 주세요.");
         }
         if (verify.getVerifiedAt() != null) {
             return;   // 이미 인증 완료 (중복 클릭 등) → 성공으로 처리
         }
         LocalDateTime now = dbClock.now();
         if (!verify.getExpiresAt().isAfter(now)) {   // expires_at <= NOW()
-            throw badRequest("인증코드가 만료되었습니다. 다시 요청해주세요.");
+            throw badRequest("인증코드가 만료되었습니다. 다시 요청해 주세요.");
         }
         if (!verify.getCode().equals(code == null ? null : code.trim())) {
             throw badRequest("인증코드가 일치하지 않습니다.");
