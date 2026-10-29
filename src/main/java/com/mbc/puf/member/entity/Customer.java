@@ -57,6 +57,10 @@ public class Customer {
     @Column(name = "created_at", insertable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    // 푸시 알림을 사용자가 직접 끈 계정은 로그인 때 자동으로 다시 켜지 않는다. 재설치·기기 변경 후에도 유지되도록 서버에 둔다
+    @Column(name = "push_opt_out")
+    private boolean pushOptOut = false;
+
     public Customer() {
     }
 
@@ -154,5 +158,13 @@ public class Customer {
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public boolean isPushOptOut() {
+        return pushOptOut;
+    }
+
+    public void setPushOptOut(boolean pushOptOut) {
+        this.pushOptOut = pushOptOut;
     }
 }

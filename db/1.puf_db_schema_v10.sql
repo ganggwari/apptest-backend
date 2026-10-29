@@ -91,7 +91,8 @@ CREATE TABLE manager ( -- 관리자 계정 테이블
     status manager_status NOT NULL DEFAULT 'PENDING', -- 계정 상태(가입 후 일정 시간 지나면 백엔드가 자동으로 ACTIVE 전환)
     shift_id BIGINT, -- 소속 근무조 아이디(교대 근무하지 않으면 NULL)
     created_at TIMESTAMP NOT NULL DEFAULT NOW(), -- 가입 요청 일자
-    approved_at TIMESTAMP -- 승인(자동승인) 일자
+    approved_at TIMESTAMP, -- 승인(자동승인) 일자
+    push_opt_out BOOLEAN NOT NULL DEFAULT FALSE -- 푸시 알림을 직접 끈 상태(재설치·기기 변경 후에도 유지)
 );
 
 CREATE TABLE manager_region ( -- 관리자 담당 지역 테이블(관리자 1명이 여러 지역 담당 가능)
@@ -123,6 +124,7 @@ CREATE TABLE customer ( -- 고객(일반 회원) 테이블
     detail_addr VARCHAR(255), -- 상세주소
     emergency VARCHAR(20), -- 긴급 연락처
     is_withdrawn BOOLEAN NOT NULL DEFAULT FALSE, -- 탈퇴 여부
+    push_opt_out BOOLEAN NOT NULL DEFAULT FALSE, -- 푸시 알림을 직접 끈 상태(재설치·기기 변경 후에도 유지)
     created_at TIMESTAMP NOT NULL DEFAULT NOW() -- 가입일
 );
 
