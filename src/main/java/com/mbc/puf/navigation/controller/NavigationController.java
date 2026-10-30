@@ -1,10 +1,14 @@
 package com.mbc.puf.navigation.controller;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -19,6 +23,7 @@ import com.mbc.puf.navigation.dto.RouteResult;
 import com.mbc.puf.navigation.service.DetourService;
 import com.mbc.puf.navigation.service.HazardService;
 import com.mbc.puf.navigation.service.NavigationSearchService;
+import com.mbc.puf.navigation.service.NavigationTtsService;
 import com.mbc.puf.weather.dto.WeatherResponse;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,7 +34,7 @@ import tools.jackson.databind.JsonNode;
 /**
  * 내비게이션(PWA) API.
  *  - /route, /hazards : 로그인한 고객/관리자만 (카카오 호출 한도 보호)
- *  - /config, /places, /directions, /weather : 로그인 없이 쓸 수 있는 화면용 조회 (places, directions 는 IP 별 분당 호출 제한)
+ *  - /config, /places, /directions, /weather, /tts : 로그인 없이 쓸 수 있는 화면용 조회 (places, directions 는 IP 별 분당 호출 제한)
  */
 @Tag(name = "내비게이션", description = "장소 검색·후보 경로·날씨, 길찾기(위험 지하차도 우회), 위험 상태")
 @RestController
@@ -39,14 +44,16 @@ public class NavigationController {
     private final DetourService detourService;
     private final HazardService hazardService;
     private final NavigationSearchService searchService;
+    private final NavigationTtsService ttsService;
     private final String kakaoJsKey;
 
     public NavigationController(DetourService detourService, HazardService hazardService,
-                                NavigationSearchService searchService,
+                                NavigationSearchService searchService, NavigationTtsService ttsService,
                                 @Value("${puf.kakao.js-key:}") String kakaoJsKey) {
         this.detourService = detourService;
         this.hazardService = hazardService;
         this.searchService = searchService;
+        this.ttsService = ttsService;
         this.kakaoJsKey = kakaoJsKey == null ? "" : kakaoJsKey.trim();
     }
 
@@ -101,6 +108,18 @@ public class NavigationController {
     public ApiResponse<WeatherResponse> weather(@RequestParam(name = "lat") BigDecimal lat,
                                                 @RequestParam(name = "lng") BigDecimal lng) {
         return ApiResponse.ok(searchService.weather(lat, lng));
+    }
+
+    @Operation(summary = "내비 음성 안내(AI 목소리)", description = "text(200자 이내)를 voice(Kore·Aoede·Zephyr·Sulafat·Charon·Iapetus·Orus·Puck) 목소리로 읽은 WAV. "
+            + "같은 목소리·문장은 서버에 둔 음성을 돌려준다. 로그인 없이 사용 가능, IP 별 분당 새로 만드는 수 제한(429).")
+    @GetMapping("/tts")
+    public ResponseEntity<byte[]> tts(@RequestParam(name = "text") String text,
+                                      @RequestParam(name = "voice") String voice,
+                                      HttpServletRequest request) {
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("audio/wav"))
+                .cacheControl(CacheControl.maxAge(Duration.ofDays(1)).cachePrivate())
+                .body(ttsService.speech(text, voice, request.getRemoteAddr()));
     }
 
     /** "경도,위도" -> {경도, 위도} */
