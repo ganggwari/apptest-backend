@@ -69,6 +69,8 @@ public class SecurityConfig {
 						// ---- 로그인 없이 조회 가능한 신월여의지하도로 공개 CCTV (서버가 서울터널 제공처를 대신 조회) ----
 						.requestMatchers(HttpMethod.GET, "/api/tunnel-cctv/cameras", "/api/tunnel-cctv/cameras/*/stream").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/navigation/places", "/api/navigation/directions", "/api/navigation/weather").permitAll()
+						// 내비 음성 안내(AI 목소리). 설정 화면 미리 듣기와 주행 안내에서 쓴다. IP 별 분당 생성 수 제한
+						.requestMatchers(HttpMethod.GET, "/api/navigation/tts").permitAll()
 						// 지도 화면이 쓰는 카카오 JavaScript 키(도메인 제한 키라 공개돼도 되는 값). 로그인 전 지도 화면에서도 읽어야 한다. REST 키는 내려주지 않는다
 						.requestMatchers(HttpMethod.GET, "/api/navigation/config").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/push/config").permitAll()
