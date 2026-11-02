@@ -14,7 +14,7 @@ import com.mbc.puf.common.enums.DeliveryStatus;
  *  id          : alert.id 또는 notice_alert.id
  *  deliveryId  : 발송(채널) 단위 목록에서만 값 있음 (alert_delivery.id / notice_delivery.id)
  *  refId       : ALERT 면 eventId, NOTICE 면 noticeId
- *  title       : ALERT 면 "접근 알림"/"최종 알림", NOTICE 면 공지 제목
+ *  title       : ALERT 면 "접근 알림"/"진입 직전 알림", NOTICE 면 공지 제목
  *  region 계열, underpass 계열, car 계열 : 공지 알림은 시설·차량과 무관해서 null
  *  cameraId/cameraRole : 번호판을 인식해 이 알림을 만든 카메라와 그 역할(APPROACH_LPR/FINAL_LPR). 공지 알림·예전 알림은 null
  *  alertType   : ALERT 만

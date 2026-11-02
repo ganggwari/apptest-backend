@@ -52,27 +52,53 @@ public class TransferPdfGenerator {
     public byte[] generatePolicePdf(ControlNoticeData d) {
         ByteArrayOutputStream out=new ByteArrayOutputStream();
         try(PdfDocument pdf=new PdfDocument(new PdfWriter(out));Document doc=new Document(pdf)) {
-            doc.setMargins(50,45,65,45);PdfFont f=PdfVisuals.font();PdfVisuals.footer(pdf,f);
-            letterHead(doc,f,"도로 통제 정보 전달서",d.blockEvent()?"통제 시작":"통제 해제");
-            Table meta=PdfVisuals.table(1.5f,6);
-            meta(meta,f,"시행일자",fmt(d.eventAt()));
-            meta(meta,f,"수신","관할 경찰서장 · 관할 소방서장");
-            meta(meta,f,"제목",orDash(d.underpassName())+(d.blockEvent()?" 통제 시작 알림":" 통제 해제 알림"));doc.add(meta);
-            doc.add(PdfVisuals.p("아래와 같이 지하차도 통제 정보를 전달하오니 교통 관리 및 현장 대응 업무에 참고하여 주시기 바랍니다.",f,10).setMarginTop(18).setMarginBottom(20));
-            Table t=PdfVisuals.table(112,393);
-            formRow(t,f,"대상 시설",orDash(d.underpassName())+(d.address()==null?"":" / "+d.address()));
-            formRow(t,f,d.blockEvent()?"통제 일시":"해제 일시",fmt(d.eventAt()));
-            formRow(t,f,d.blockEvent()?"통제 사유":"해제 사유",orDash(d.reason()));
-            if(d.reasonNote()!=null&&!d.reasonNote().isBlank())formRow(t,f,"상세 사유",d.reasonNote());
-            String info="";
-            if(d.riskScore()!=null)info=String.format(java.util.Locale.ROOT,"위험도 %.1f점",d.riskScore());
-            if(d.rainfallMm()!=null)info+=(info.isBlank()?"":" / ")+String.format(java.util.Locale.ROOT,"강우량 %.1fmm",d.rainfallMm());
-            formRow(t,f,"관측 정보",orDash(info));formRow(t,f,"통제 조치",methodLine(d));
-            if(!d.blockEvent())formRow(t,f,"기존 통제",startInfoLine(d));
-            formRow(t,f,"담당자",managerLine(d));
-            if(d.memo()!=null&&!d.memo().isBlank())formRow(t,f,"비고",d.memo());
-            doc.add(t);signature(doc,f);
+            doc.setMargins(40,45,58,45);PdfFont f=PdfVisuals.font();PdfVisuals.footer(pdf,f);
+            doc.add(PdfVisuals.p("ROUTEL · 재난상황보고서",f,10)
+                    .setBorderBottom(new SolidBorder(PdfVisuals.LINE,.7f)).setPaddingBottom(12).setMarginBottom(20));
+            doc.add(PdfVisuals.p("재난상황 전파 보고서",f,22).setTextAlignment(TextAlignment.CENTER).setMarginBottom(6));
+            doc.add(PdfVisuals.p(d.blockEvent()?"지하차도 통제 시작 상황":"지하차도 통제 해제 상황",f,10)
+                    .setFontColor(PdfVisuals.MUTED).setTextAlignment(TextAlignment.CENTER).setMarginBottom(20));
+            Table t=PdfVisuals.table(39,61);
+            reportRow(t,f,"발생장소",orDash(d.underpassName())+(d.address()==null||d.address().isBlank()?"":" / "+d.address()));
+            reportRow(t,f,"발생일시",fmt(d.eventAt()));
+            reportRow(t,f,"재난유형 / 조치 사유",orDash(d.reason()));
+            if(d.reasonNote()!=null&&!d.reasonNote().isBlank())reportRow(t,f,"상세 사유",d.reasonNote());
+            reportRow(t,f,"AI 위험단계",riskAssessment(d));
+            reportRow(t,f,"강수량",d.rainfallMm()==null?"미확인":String.format(java.util.Locale.ROOT,"%.1f mm",d.rainfallMm()));
+            reportRow(t,f,"CCTV 확인","확인 필요");
+            reportRow(t,f,"인명피해","미확인");
+            reportRow(t,f,"도로 통제",d.blockEvent()?"통제 시작":"통제 해제");
+            reportRow(t,f,"현장 조치",methodLine(d));
+            if(!d.blockEvent())reportRow(t,f,"기존 통제",startInfoLine(d));
+            reportRow(t,f,"담당자",managerLine(d));
+            doc.add(t);
+            PdfVisuals.section(doc,f,"요청사항");
+            doc.add(PdfVisuals.p(d.blockEvent()
+                    ?"현장 위험 확인, 차량 진입 통제 및 우회 안내, 인명구조 필요 여부 판단"
+                    :"현장 안전 확인, 차량 통행 재개 및 교통 안내",f,11));
+            if(d.memo()!=null&&!d.memo().isBlank())doc.add(PdfVisuals.p(d.memo(),f,10));
+            PdfVisuals.section(doc,f,"첨부자료");
+            doc.add(PdfVisuals.p("별도 첨부 없음 · CCTV 이미지, AI 예측 결과, 위치 좌표는 별도 확인 필요",f,10));
+            doc.add(PdfVisuals.p("전파 대상: 관할 경찰 · 소방 · 지자체 재난안전상황실",f,9)
+                    .setFontColor(PdfVisuals.MUTED).setBorderTop(new SolidBorder(PdfVisuals.LINE,.7f))
+                    .setPaddingTop(12).setMarginTop(20));
+            doc.add(PdfVisuals.p("문서 생성 기록이며, 외부기관의 실제 수신 여부는 별도 확인이 필요합니다.",f,8).setFontColor(PdfVisuals.MUTED));
         }catch(Exception e){throw new RuntimeException("통제 정보 전달서 PDF 생성 실패",e);}return out.toByteArray();
+    }
+    private String riskAssessment(ControlNoticeData data) {
+        String stage = data.riskLevel() == null ? "미확인" : data.riskLevel().getDbValue();
+        String score = data.riskScore() == null ? "점수 미확인"
+                : String.format(java.util.Locale.ROOT, "%.1f점", data.riskScore());
+        String time = data.riskAssessedAt() == null ? "판정 시각 미확인" : "판정 " + fmt(data.riskAssessedAt());
+        return stage + " · " + score + " · " + time;
+    }
+
+    private void reportRow(Table table,PdfFont font,String label,String value){
+        for(String text:new String[]{label,value}){
+            table.addCell(new Cell().setBorder(Border.NO_BORDER)
+                    .setBorderBottom(new SolidBorder(PdfVisuals.LINE,.5f)).setPaddingTop(6).setPaddingBottom(6)
+                    .add(PdfVisuals.p(text,font,10).setMargin(0)));
+        }
     }
     private void letterHead(Document d,PdfFont f,String title,String sub){
         d.add(PdfVisuals.p("PUF",f,18).setBorderBottom(new SolidBorder(PdfVisuals.INK,1)).setPaddingBottom(12).setMarginBottom(20));

@@ -333,6 +333,9 @@ public class HandoverServiceImpl implements HandoverService {
         if (ev.getTriggerType() == PmTriggerType.NO_DATA) {
             return String.format("%s %s 센서 데이터 미수신 점검 대기 등록", ev.getCode(), ev.getUnderpassName());
         }
+        if (ev.getTriggerType() == PmTriggerType.MANUAL) {
+            return String.format("%s %s 점검 수동 등록", ev.getCode(), ev.getUnderpassName());
+        }
         String why = ev.getTriggerType() == null ? "" : ev.getTriggerType().getDbValue() + ", ";
         return String.format("%s %s 점검 대기 등록 (%s%s, %s점)", ev.getCode(), ev.getUnderpassName(), why,
                 ev.getLevel() == null ? "-" : ev.getLevel().getDbValue(),

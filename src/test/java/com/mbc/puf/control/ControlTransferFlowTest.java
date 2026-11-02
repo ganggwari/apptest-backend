@@ -23,6 +23,8 @@ class ControlTransferFlowTest {
         var facility = mock(Underpass.class);
         when(facility.getId()).thenReturn(1L);
         when(facility.getCurrentStatus()).thenReturn(UnderpassCurrentStatus.NORMAL);
+        when(facility.getCurrentRiskLevel()).thenReturn(RiskLevel.ALERT);
+        when(facility.getCurrentRiskScore()).thenReturn(BigDecimal.valueOf(76.4));
         when(((UnderpassRepository)deps.get(UnderpassRepository.class)).findByIdAndDeletedFalse(1L)).thenReturn(Optional.of(facility));
         when(((RiskPolicy)deps.get(RiskPolicy.class)).blockCm(facility)).thenReturn(BigDecimal.valueOf(15));
         var transfers = (CtrlTransferRepository) deps.get(CtrlTransferRepository.class);
@@ -32,6 +34,11 @@ class ControlTransferFlowTest {
         verify(transfers,times(2)).saveAndFlush(saved.capture());
         assertEquals(List.of(TransferAgency.POLICE,TransferAgency.FIRE),saved.getAllValues().stream().map(CtrlTransfer::getAgency).toList());
         assertTrue(saved.getAllValues().stream().allMatch(t -> t.getSnapshot().contains("auto")));
+        assertTrue(saved.getAllValues().stream().allMatch(t -> t.getSnapshot().contains("ALERT")));
+        var events = ArgumentCaptor.forClass(com.mbc.puf.underpass.entity.UnderpassEvent.class);
+        verify((com.mbc.puf.underpass.repository.UnderpassEventRepository)deps.get(com.mbc.puf.underpass.repository.UnderpassEventRepository.class)).saveAndFlush(events.capture());
+        assertEquals(RiskLevel.ALERT,events.getValue().getRiskLevel());
+        assertEquals(BigDecimal.valueOf(76.4),events.getValue().getRiskScoreAtEvent());
         verifyNoInteractions(deps.get(CtrlTransferCarRepository.class));
     }
     @Test void manualVehicleReportRejectsReleaseEvent() throws Exception {

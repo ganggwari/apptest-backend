@@ -18,6 +18,22 @@ public class CtrlTransferItem {
     private LocalDateTime createdAt;
     private List<String> carNums;   // 소방 이관일 때만 값 있음
 
+    private com.mbc.puf.common.enums.RiskLevel riskLevel;
+    private Double riskScore;
+    private LocalDateTime riskAssessedAt;
+    public com.mbc.puf.common.enums.RiskLevel getRiskLevel() { return riskLevel; }
+    public void setRiskLevel(com.mbc.puf.common.enums.RiskLevel value) { riskLevel = value; }
+    public Double getRiskScore() { return riskScore; }
+    public void setRiskScore(Double value) { riskScore = value; }
+    public LocalDateTime getRiskAssessedAt() { return riskAssessedAt; }
+    public void setRiskAssessedAt(LocalDateTime value) { riskAssessedAt = value; }
+    public String getRiskAssessment() {
+        if (!"CONTROL_NOTICE".equals(documentType)) return "-";
+        return (riskLevel == null ? "미확인" : riskLevel.getDbValue()) + " · "
+                + (riskScore == null ? "위험 점수 미확인" : String.format(java.util.Locale.ROOT,"위험 점수 %.1f점",riskScore))
+                + " · " + (riskAssessedAt == null ? "판정 시각 미확인" : "판정 시각 " + riskAssessedAt.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
+    }
+
     public CtrlTransferItem() {}
 
     public Long getId() { return id; }

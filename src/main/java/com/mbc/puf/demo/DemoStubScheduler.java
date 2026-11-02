@@ -262,7 +262,17 @@ public class DemoStubScheduler {
 
     // 수위계 흉내: 시나리오 중에는 곡선대로, 평소에는 0 근처
     private void waterStub(Long uid, boolean active, double t, boolean due) {
-        var sample=waterProfile.sample(uid,due,active?state.waterAt(t):0);
+        // 평상시(시나리오 아님)에는 위험점수가 아니라 최근 강수에서 수위를 만든다: 비가 없으면 수위도 0 에 가깝다
+        java.util.OptionalDouble rainWater=java.util.OptionalDouble.empty();
+        if(!active&&due){
+            try {
+                JsonNode rain=api.rainfall(uid);
+                if(rain!=null&&!rain.isNull())rainWater=java.util.OptionalDouble.of(DemoWaterProfile.rainWaterCm(num(rain,"rainfallMm"),num(rain,"rainfall1hMm")));
+            } catch (RuntimeException e) {
+                log.warn("[demo] rainfall read failed for underpass {}: {}", uid, e.toString());
+            }
+        }
+        var sample=waterProfile.sample(uid,due,active?state.waterAt(t):0,active,rainWater);
         if(sample.isEmpty())return;
         double level=sample.getAsDouble();
         Map<String, Object> body = new LinkedHashMap<>();

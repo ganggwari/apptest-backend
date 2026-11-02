@@ -224,6 +224,8 @@ public class ControlServiceImpl implements ControlService {
         UnderpassEvent event = new UnderpassEvent();
         event.setUnderpassId(underpassId);
         event.setEventType(UnderpassEventType.BLOCK);
+        event.setRiskLevel(underpass.getCurrentRiskLevel());
+        event.setRiskScoreAtEvent(underpass.getCurrentRiskScore());
         event.setOperatorId(operatorId);
         event.setAuto(auto);
         event.setWaterCm(waterCm);
@@ -295,6 +297,8 @@ public class ControlServiceImpl implements ControlService {
         UnderpassEvent event = new UnderpassEvent();
         event.setUnderpassId(underpassId);
         event.setEventType(UnderpassEventType.RELEASE);
+        event.setRiskLevel(underpass.getCurrentRiskLevel());
+        event.setRiskScoreAtEvent(underpass.getCurrentRiskScore());
         event.setOperatorId(loginUser.id());
         event.setReason(reason);
         event.setReasonNote(reasonNote);
@@ -545,13 +549,15 @@ public class ControlServiceImpl implements ControlService {
         LocalDateTime at = event.getCreatedAt() != null ? event.getCreatedAt() : LocalDateTime.now();
 
         // 이벤트 시점 직전에 나온 위험도 예측 1건 (점수 + 강우)
-        Double score = null;
+        Double score = event.getRiskScoreAtEvent() == null ? null : event.getRiskScoreAtEvent().doubleValue();
         Double rain = null;
         List<RiskScore> scores = riskScoreRepository
                 .findByUnderpassIdAndPredictedAtLessThanEqualOrderByPredictedAtDesc(underpass.getId(), at, Limit.of(1));
         if (!scores.isEmpty()) {
             RiskScore rs = scores.get(0);
-            score = rs.getRiskScore() != null ? rs.getRiskScore().doubleValue() : null;
+            // Legacy events may have a historical score but no recorded stage. Never infer the stage from it.
+            if (event.getRiskLevel() == null && score == null)
+                score = rs.getRiskScore() != null ? rs.getRiskScore().doubleValue() : null;
             rain = rs.getRainfallMm() != null ? rs.getRainfallMm().doubleValue() : null;
         }
 
@@ -565,7 +571,7 @@ public class ControlServiceImpl implements ControlService {
                 blockEvent != null ? blockEvent.getCreatedAt() : null,
                 blockEvent != null ? blockEvent.getReason() : null,
                 blockEvent != null ? blockEvent.getReasonNote() : null,
-                memo);
+                memo, event.getRiskLevel(), event.getRiskLevel() == null ? null : event.getCreatedAt());
     }
 
     // 그 지하차도에서 가장 가까운 전광판의 첫 페이지 문구 (전광판이 없거나 페이지가 비어 있으면 null)
@@ -592,6 +598,19 @@ public class ControlServiceImpl implements ControlService {
         item.setMemo(t.getMemo());
         item.setManagerId(t.getManagerId());
         item.setCreatedAt(t.getCreatedAt());
+        if ("CONTROL_NOTICE".equals(item.getDocumentType())) {
+            eventRepository.findById(t.getEventId()).ifPresent(event -> {
+                ControlNoticeData base = new ControlNoticeData(null, null,
+                        event.getEventType() == UnderpassEventType.BLOCK, event.getCreatedAt(),
+                        null, null, event.getRiskScoreAtEvent() == null ? null : event.getRiskScoreAtEvent().doubleValue(),
+                        null, null, null, null, null, null, null, null, null,
+                        event.getRiskLevel(), event.getRiskLevel() == null ? null : event.getCreatedAt());
+                ControlNoticeData notice = applySnapshot(base, t.getSnapshot());
+                item.setRiskLevel(notice.riskLevel());
+                item.setRiskScore(notice.riskScore());
+                item.setRiskAssessedAt(notice.riskAssessedAt());
+            });
+        }
 
         // 관리자 이름
         ManagerInfo mgr = managerInfo(t.getManagerId());
@@ -617,7 +636,10 @@ public class ControlServiceImpl implements ControlService {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("docType", DOC_TYPE_CONTROL_NOTICE);   // 통제 정보 전달서라는 표시 (예전 기록은 "auto" 키로 구분한다)
         m.put("auto", auto);
-        if (n.riskScore() != null) m.put("riskScore", n.riskScore());
+        m.put("riskSnapshotVersion", 1);
+        m.put("riskLevel", n.riskLevel() == null ? null : n.riskLevel().name());
+        m.put("riskAssessedAt", n.riskAssessedAt() == null ? null : n.riskAssessedAt().toString());
+        m.put("riskScore", n.riskScore());
         if (n.rainfallMm() != null) m.put("rainfallMm", n.rainfallMm());
         if (waterCm != null) m.put("waterCm", waterCm);
         if (n.displayText() != null) m.put("displayText", n.displayText());
@@ -638,13 +660,28 @@ public class ControlServiceImpl implements ControlService {
             return base;
         }
         return new ControlNoticeData(base.underpassName(), base.address(), base.blockEvent(), base.eventAt(), base.reason(), base.reasonNote(),
-                m.get("riskScore") instanceof Number v ? Double.valueOf(v.doubleValue()) : base.riskScore(),
+                m.get("riskScore") instanceof Number v ? Double.valueOf(v.doubleValue())
+                        : m.containsKey("riskSnapshotVersion") ? null : base.riskScore(),
                 m.get("rainfallMm") instanceof Number v ? Double.valueOf(v.doubleValue()) : base.rainfallMm(),
                 m.get("displayText") instanceof String t ? t : base.displayText(),
                 m.get("managerName") instanceof String t ? t : base.managerName(),
                 m.get("managerRegion") instanceof String t ? t : base.managerRegion(),
                 m.get("shiftLabel") instanceof String t ? t : base.shiftLabel(),
-                base.blockAt(), base.blockReason(), base.blockReasonNote(), base.memo());
+                base.blockAt(), base.blockReason(), base.blockReasonNote(), base.memo(),
+                m.containsKey("riskSnapshotVersion") ? snapshotRiskLevel(m.get("riskLevel")) : base.riskLevel(),
+                m.containsKey("riskSnapshotVersion") ? snapshotRiskTime(m.get("riskAssessedAt")) : base.riskAssessedAt());
+    }
+
+    private com.mbc.puf.common.enums.RiskLevel snapshotRiskLevel(Object value) {
+        if (!(value instanceof String text)) return null;
+        try { return com.mbc.puf.common.enums.RiskLevel.valueOf(text); }
+        catch (IllegalArgumentException ex) { return null; }
+    }
+
+    private LocalDateTime snapshotRiskTime(Object value) {
+        if (!(value instanceof String text)) return null;
+        try { return LocalDateTime.parse(text); }
+        catch (java.time.format.DateTimeParseException ex) { return null; }
     }
 
     private boolean isControlNotice(CtrlTransfer transfer) {

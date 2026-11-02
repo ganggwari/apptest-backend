@@ -15,6 +15,7 @@ import com.mbc.puf.common.response.ApiResponse;
 import com.mbc.puf.common.security.LoginUser;
 import com.mbc.puf.pm.dto.PmActionItem;
 import com.mbc.puf.pm.dto.PmActionRequest;
+import com.mbc.puf.pm.dto.PmEventCreateRequest;
 import com.mbc.puf.pm.dto.PmEventItem;
 import com.mbc.puf.pm.dto.PmEventStatusRequest;
 import com.mbc.puf.pm.service.PmEventService;
@@ -34,6 +35,15 @@ public class PmEventController {
 
     public PmEventController(PmEventService pmEventService) {
         this.pmEventService = pmEventService;
+    }
+
+    @Operation(summary = "점검 수동 등록",
+            description = "관리자가 직접 점검 대기(수동등록, 확인필요)를 만든다. content 필수이고 첫 점검 기록으로 남는다. "
+                    + "점수 수신 경로가 아니므로 점검 후 쿨다운과 상관없이 등록된다. 같은 설비에 처리 중인 점검이 있으면 409.")
+    @PostMapping
+    public ResponseEntity<ApiResponse<PmEventItem>> create(@AuthenticationPrincipal LoginUser loginUser,
+                                                           @Valid @RequestBody PmEventCreateRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(pmEventService.create(loginUser, request)));
     }
 
     @Operation(summary = "점검 대기 상태 변경",

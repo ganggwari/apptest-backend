@@ -2,6 +2,7 @@ package com.mbc.puf.pm.service;
 
 import java.util.List;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,6 +15,7 @@ import com.mbc.puf.common.security.LoginUser;
 import com.mbc.puf.common.security.ScopeResolver;
 import com.mbc.puf.pm.dto.PmActionItem;
 import com.mbc.puf.pm.dto.PmActionRequest;
+import com.mbc.puf.pm.dto.PmEventCreateRequest;
 import com.mbc.puf.pm.dto.PmEventItem;
 import com.mbc.puf.pm.dto.PmEventStatusRequest;
 import com.mbc.puf.pm.entity.PmAction;
@@ -114,6 +116,62 @@ public class PmEventServiceImpl implements PmEventService {
         Long regionId = regionOfEvent(eventId);
         streamPublisher.dataChangedToAdmins(regionId, "pm-event", "UPDATE", eventId);
         return loadEvent(eventId);
+    }
+
+    @Override
+    @Transactional
+    public PmEventItem create(LoginUser loginUser, PmEventCreateRequest request) {
+        Long equipId = request.getEquipId();
+        List<?> rows = em.createNativeQuery("""
+                SELECT CAST(e.type AS text), u.region_id FROM pm_equipment e
+                  JOIN underpass u ON u.id = e.underpass_id
+                 WHERE e.id = :id AND e.is_deleted = FALSE AND u.is_deleted = FALSE
+                """).setParameter("id", equipId).getResultList();
+        if (rows.isEmpty()) {
+            throw new BusinessException(HttpStatus.NOT_FOUND, "존재하지 않는 예지보전 설비입니다. id=" + equipId);
+        }
+        Object[] row = (Object[]) rows.get(0);
+        scopeResolver.requireOwnable(loginUser, ((Number) row[1]).longValue());
+        if ("ROAD".equals(row[0])) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "노면 설비는 탐지 확인·조치 영역에서 처리해 주세요.");
+        }
+        String content = request.getContent() == null ? "" : request.getContent().trim();
+        if (content.isEmpty()) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "점검 내용을 적어 주세요.");
+        }
+        if (!eventRepository.findByEquipIdInAndStatusIn(List.of(equipId),
+                List.of(PmEventStatus.CHECK_NEEDED, PmEventStatus.IN_PROGRESS)).isEmpty()) {
+            throw new BusinessException(HttpStatus.CONFLICT, "이미 처리 중인 점검이 있습니다. 해당 점검을 먼저 끝내 주세요.");
+        }
+
+        PmEvent event = new PmEvent();
+        event.setEquipId(equipId);
+        event.setTriggerType(com.mbc.puf.common.enums.PmTriggerType.MANUAL);   // 점수·단계 없음
+        event.setStatus(PmEventStatus.CHECK_NEEDED);
+        Long eventId;
+        try {
+            eventId = eventRepository.saveAndFlush(event).getId();
+        } catch (DataIntegrityViolationException e) {   // 동시에 두 번 눌린 경우 (uq_pm_event_open_manual)
+            throw new BusinessException(HttpStatus.CONFLICT, "이미 처리 중인 점검이 있습니다. 해당 점검을 먼저 끝내 주세요.");
+        }
+        saveAction(loginUser, eventId, manualText(request, content), PmActionKind.RECORD);
+
+        Long regionId = regionOfEvent(eventId);
+        streamPublisher.dataChangedToAdmins(regionId, "pm-event", "CREATE", eventId);
+        streamPublisher.dataChangedToAdmins(regionId, "pm-action", "CREATE", eventId);
+        return loadEvent(eventId);
+    }
+
+    /** 첫 기록 문장: [수동 등록] 사유 · 우선순위 + 내용 */
+    private static String manualText(PmEventCreateRequest request, String content) {
+        StringBuilder head = new StringBuilder("[수동 등록]");
+        if (request.getReason() != null && !request.getReason().isBlank()) {
+            head.append(" 사유: ").append(request.getReason().trim());
+        }
+        if (request.getPriority() != null && !request.getPriority().isBlank()) {
+            head.append(" · 우선순위: ").append(request.getPriority().trim());
+        }
+        return head + "\n" + content;
     }
 
     @Override
