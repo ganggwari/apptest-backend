@@ -35,8 +35,8 @@ import tools.jackson.databind.JsonNode;
  * 단계 판정(RiskPolicy) → 이벤트·알림·전광판·자동 차단·내비 우회·접근/최종 알림 판단은 원래 로직이 그대로 한다.
  *
  *   안전 : 점수 5,  수위 0
- *   관심 : 점수 = 관심 하한 + 2,  수위 0
- *   주의 : 점수 = 주의 하한 + 2,  수위 0
+ *   관심 : 점수 = 관심 하한 + 2,  수위 1.9cm   (지하차도와 관계없이 같은 값. 가장 낮은 통제 수위 5cm 기준)
+ *   주의 : 점수 = 주의 하한 + 2,  수위 3.6cm   (같음)
  *   경계 : 점수 = 주의 구간,  수위 = 차단 수위 + 0.5   → 자동 차단까지 일어난다
  *   심각 : 점수 = 주의 구간,  수위 = 차단 수위 + 심각 추가분 + 0.5
  *
@@ -49,6 +49,7 @@ public class DemoLevelService {
 
     private static final Logger log = LoggerFactory.getLogger(DemoLevelService.class);
     private static final int FORECAST_HOURS = 6;
+    private static final int FORECAST_EVERY = 6;   // 고정값 예측은 6번(약 1분)에 한 번 다시 넣는다
 
     /** 고정한 값 */
     public record Pin(RiskLevel level, BigDecimal score, BigDecimal waterCm) {}
@@ -58,22 +59,31 @@ public class DemoLevelService {
     private final RiskPolicy policy;
     private final DemoInternalApi api;
     private final DbClock dbClock;
+    private final DemoWaterProfile waterProfile;
     private final List<Long> targetIds;
     private final BigDecimal severeExtraCm;
+    private final BigDecimal waterMarginCm;
+    private final BigDecimal lowestBlockCm;     // 관심·주의 수위를 정하는 기준: 가장 낮은 통제 수위(조기 통제 5cm)
 
     private final Map<Long, Pin> pins = new ConcurrentHashMap<>();
+    private int refreshCount = 0;
 
     public DemoLevelService(UnderpassRepository underpassRepository, ThresholdRepository thresholdRepository,
-                            RiskPolicy policy, DemoInternalApi api, DbClock dbClock,
+                            RiskPolicy policy, DemoInternalApi api, DemoWaterProfile waterProfile, DbClock dbClock,
                             @Value("${puf.demo.level-target-ids:1,14,15}") String targets,
-                            @Value("${puf.risk.water.severe-extra-cm:15}") BigDecimal severeExtraCm) {
+                            @Value("${puf.risk.water.severe-extra-cm:15}") BigDecimal severeExtraCm,
+                            @Value("${puf.risk.hysteresis.water-cm:1}") BigDecimal waterMarginCm,
+                            @Value("${puf.risk.water.early-block-cm:5}") BigDecimal lowestBlockCm) {
         this.underpassRepository = underpassRepository;
         this.thresholdRepository = thresholdRepository;
         this.policy = policy;
         this.api = api;
         this.dbClock = dbClock;
+        this.waterProfile = waterProfile;
         this.targetIds = Arrays.stream(targets.split(",")).map(String::trim).filter(x -> !x.isEmpty()).map(Long::valueOf).toList();
         this.severeExtraCm = severeExtraCm;
+        this.waterMarginCm = waterMarginCm;
+        this.lowestBlockCm = lowestBlockCm;
     }
 
     public boolean isPinned(Long underpassId) {
@@ -114,13 +124,14 @@ public class DemoLevelService {
         for (Underpass u : chosen) {
             Pin pin = pinFor(u, level);
             pins.put(u.getId(), pin);
+            waterProfile.sync(u.getId(), pin.waterCm().doubleValue());
             push(u.getId(), pin, true);
         }
         log.info("[DEMO] 위험단계 {} 고정: {}", level, chosen.stream().map(Underpass::getName).toList());
         return list();
     }
 
-    /** 고정 풀기 (underpassIds 가 비어 있으면 전체). 값은 그대로 두고 평상시 가짜 갱신이 이어받는다 */
+    /** 고정 풀기 (underpassIds 가 비어 있으면 전체). 이후 평상시 값(DemoCalmProfile)이 이어받는다 */
     public List<Map<String, Object>> release(List<Long> underpassIds) {
         if (underpassIds == null || underpassIds.isEmpty()) {
             pins.clear();
@@ -132,9 +143,13 @@ public class DemoLevelService {
 
     /** 스케줄러가 10초마다 부른다: 고정된 값을 다시 넣어 "갱신 지연"이 안 뜨고 값이 유지되게 한다 */
     public void refreshPinned() {
+        if (pins.isEmpty()) {
+            return;
+        }
+        boolean withForecast = refreshCount++ % FORECAST_EVERY == 0;
         pins.forEach((uid, pin) -> {
             try {
-                push(uid, wobble(pin), false);
+                push(uid, wobble(pin), withForecast);   // 비는 push 안에서 단계에 맞춰 살짝 흔든다
             } catch (RuntimeException e) {
                 log.warn("[DEMO] 고정값 갱신 실패 underpass {}: {}", uid, e.toString());
             }
@@ -174,8 +189,14 @@ public class DemoLevelService {
         BigDecimal water = BigDecimal.ZERO;
         switch (level) {
             case SAFE -> score = BigDecimal.valueOf(5);
-            case WATCH -> score = minOf(thresholds, RiskLevel.WATCH).add(BigDecimal.valueOf(2));
-            case CAUTION -> score = minOf(thresholds, RiskLevel.CAUTION).add(BigDecimal.valueOf(2));
+            case WATCH -> {
+                score = minOf(thresholds, RiskLevel.WATCH).add(BigDecimal.valueOf(2));
+                water = watchWater(lowestBlockCm);
+            }
+            case CAUTION -> {
+                score = minOf(thresholds, RiskLevel.CAUTION).add(BigDecimal.valueOf(2));
+                water = cautionWater(lowestBlockCm);
+            }
             case ALERT -> {
                 score = minOf(thresholds, RiskLevel.CAUTION).add(BigDecimal.valueOf(2));
                 water = block.add(BigDecimal.valueOf(0.5));
@@ -187,6 +208,25 @@ public class DemoLevelService {
             default -> throw new BusinessException(HttpStatus.BAD_REQUEST, "알 수 없는 단계");
         }
         return new Pin(level, score.setScale(2, RoundingMode.HALF_UP), water.setScale(1, RoundingMode.HALF_UP));
+    }
+
+    // 관심·주의에서도 수위를 같이 올린다 (점수만 오르고 수위가 0 이면 어색해서). 로컬 DemoLevelService 와 같은 계산.
+    // 가장 낮은 통제 수위(5cm) 기준: 관심 = 1.67cm 이상, 주의 = 3.33cm 이상, 경계 = 5cm 이상.
+    // 구간 위쪽 끝에서 (히스테리시스 여유 + 흔들림 0.3 + 0.1) 만큼 띄워서 흔들려도 한 단계 위로 올라가거나 자동 통제가 걸리지 않게 한다.
+    private BigDecimal watchWater(BigDecimal block) {
+        BigDecimal upper = twoThirds(block).subtract(waterMarginCm).subtract(BigDecimal.valueOf(0.4));
+        return block.divide(BigDecimal.valueOf(2), 2, RoundingMode.DOWN).min(upper).max(BigDecimal.ZERO)
+                .setScale(1, RoundingMode.DOWN);
+    }
+
+    private BigDecimal cautionWater(BigDecimal block) {
+        BigDecimal upper = block.subtract(waterMarginCm).subtract(BigDecimal.valueOf(0.4));
+        BigDecimal mid = block.multiply(BigDecimal.valueOf(5)).divide(BigDecimal.valueOf(6), 2, RoundingMode.DOWN);
+        return mid.min(upper).max(BigDecimal.ZERO).setScale(1, RoundingMode.DOWN);
+    }
+
+    private static BigDecimal twoThirds(BigDecimal block) {
+        return block.multiply(BigDecimal.valueOf(2)).divide(BigDecimal.valueOf(3), 2, RoundingMode.HALF_UP);
     }
 
     private static BigDecimal minOf(List<Threshold> thresholds, RiskLevel level) {
@@ -203,9 +243,9 @@ public class DemoLevelService {
     private void push(Long uid, Pin pin, boolean withForecast) {
         // 단계가 내려갈 때 중간에 한 단계 더 높게 판정되지 않도록: 수위를 먼저, 점수를 나중에 넣는다
         postWater(uid, pin.waterCm());
-        postScore(uid, pin.score());
+        postScore(uid, pin);
         if (withForecast) {
-            postForecast(uid, pin.score());
+            postForecast(uid, pin);
         }
     }
 
@@ -217,21 +257,36 @@ public class DemoLevelService {
         api.postWaterLevel(body);
     }
 
-    private void postScore(Long uid, BigDecimal score) {
-        JsonNode rain = api.rainfall(uid);
+    private void postScore(Long uid, Pin pin) {
+        double intensity = DemoRainTier.intensity(pin.level());
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("underpassId", uid);
-        body.put("riskScore", score);
-        for (String key : new String[] {"rainfallMm", "rainfall1hMm", "rainfall3hMm", "rainfall6hMm", "rainfall12hMm", "rainfall24hMm"}) {
-            JsonNode v = rain == null ? null : rain.get(key);
-            body.put(key, v == null || v.isNull() ? BigDecimal.ZERO : v.decimalValue());
+        body.put("riskScore", pin.score());
+        String[] keys = {"rainfallMm", "rainfall1hMm", "rainfall3hMm", "rainfall6hMm", "rainfall12hMm", "rainfall24hMm"};
+        // 단계에 어울리는 비 (현재 = 시간당 세기, 누적은 50mm 이하). 안전은 평상시 비(DemoCalmProfile)를 쓴다. 세기만 ±5% 흔든다
+        double now = intensity > 0
+                ? intensity * (1 + (java.util.concurrent.ThreadLocalRandom.current().nextDouble() * 2 - 1) * 0.05)
+                : DemoCalmProfile.rainMmH(uid, dbClock.now().toEpochSecond(java.time.ZoneOffset.UTC));
+        double[] acc = DemoRainTier.accumulations(now);
+        body.put(keys[0], dec1(now));
+        for (int i = 0; i < acc.length; i++) {
+            body.put(keys[i + 1], dec1(acc[i]));
         }
         body.put("predictedAt", dbClock.now().truncatedTo(ChronoUnit.MILLIS));
         api.postRiskScore(body);
     }
 
-    // 예측 그래프도 같은 점수로 평평하게 (평상시 랜덤값이 섞이지 않게)
-    private void postForecast(Long uid, BigDecimal score) {
+    private static BigDecimal dec1(double v) {
+        return BigDecimal.valueOf(v).setScale(1, RoundingMode.HALF_UP);
+    }
+
+    // 예측 그래프도 같은 점수로 평평하게 (평상시 값이 섞이지 않게)
+    private void postForecast(Long uid, Pin pin) {
+        BigDecimal score = pin.score();
+        double intensity = DemoRainTier.intensity(pin.level());
+        if (intensity <= 0) {
+            intensity = DemoCalmProfile.rainMmH(uid, dbClock.now().toEpochSecond(java.time.ZoneOffset.UTC));
+        }
         JsonNode forecast = api.forecast(uid);
         if (forecast == null || !forecast.isArray()) {
             return;
@@ -245,7 +300,7 @@ public class DemoLevelService {
             Map<String, Object> item = new LinkedHashMap<>();
             item.put("targetAt", f.get("targetAt"));
             item.put("riskScore", score);
-            item.put("rainfallMm", f.get("rainfallMm"));
+            item.put("rainfallMm", dec1(DemoRainTier.forecast(intensity, count)));
             items.add(item);
         }
         if (items.isEmpty()) {

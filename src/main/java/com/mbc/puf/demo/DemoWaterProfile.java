@@ -30,6 +30,12 @@ public class DemoWaterProfile {
         this.calmMaxCm=Math.max(0,calmMaxCm);
     }
     /** 시연 위험단계 고정(DemoLevelService)이 수위를 직접 넣을 때 기억값을 맞춘다. 고정을 풀면 여기서부터 10초에 2cm씩 내려간다 */
+    /** 시연 초기화: 수위 기억값을 모두 비운다 */
+    public void clear() {
+        levels.clear();
+        scoreLevels.clear();
+        rainTargets.clear();
+    }
     public void sync(Long id,double waterCm) {
         levels.put(id,waterCm);
         scoreLevels.put(id,waterCm);

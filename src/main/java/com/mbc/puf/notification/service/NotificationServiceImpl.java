@@ -84,7 +84,7 @@ public class NotificationServiceImpl implements NotificationService {
         CustomerNotification n = new CustomerNotification();
         n.setCustomerId(customerId);
         n.setCategory(CustomerNotificationCategory.RISK);
-        n.setTitle(alertType == AlertType.FINAL ? "지하차도 진입 직전 알림" : "지하차도 접근 알림");
+        n.setTitle(alertType == AlertType.FINAL ? "진입 직전 알림" : "접근 알림");
         n.setBody((underpassName == null ? "" : underpassName + " · ") + carNum
                 + (cameraText == null ? "" : " · " + cameraText)
                 + (reason == null || reason.isBlank() ? "" : " · 사유: " + reason));

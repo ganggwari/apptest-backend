@@ -3,6 +3,7 @@ package com.mbc.puf.demo;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -28,7 +29,9 @@ import tools.jackson.databind.JsonNode;
  * 시연용 가짜 기상청·침수모델·수위계를 10초마다 한 번씩 돌린다 (puf.demo.enabled=true 일 때만).
  *
  *  - 호우 시나리오 중인 지역: 10초마다 새 값 (기상청 관측·예보 → 침수모델 점수·예측 → 수위계)
- *  - 그 밖의 지역: 설정한 주기마다 갱신 (기본: 관측·점수 5분, 수위 5분, 예보·예측 10분). 점수는 안전 ~ 주의 사이를 조금씩 오르내림
+ *  - 그 밖의 지역(평상시): DemoCalmProfile 의 값을 지하차도마다 약 1분에 한 번씩 보낸다. 점수·수위·강수가 같은 단계에 맞춰 함께 움직이고
+ *    (단계는 바뀌지 않음) 45곳을 한꺼번에 보내지 않고 10초마다 일부씩 나눠 보낸다 → "갱신 지연"이 안 뜨고, 버튼을 안 누르면 알림도 안 생긴다.
+ *    관측·예보 저장은 기존 주기(관측 5분, 예보 10분)대로.
  *
  * 침수모델·수위계는 실제와 똑같이 HTTP 로 내부 API(/api/internal/**)를 호출한다.
  * 시나리오는 선택한 지역에만 적용되므로 다른 지역에는 알림이 가지 않는다.
@@ -67,6 +70,9 @@ public class DemoStubScheduler {
     private final Map<Long, Double> calmScores = new java.util.concurrent.ConcurrentHashMap<>();
     private final java.util.Random random = new java.util.Random();
 
+    private final int calmSlots;               // 평상시 갱신을 몇 tick 에 나눠 보내는가 (60초 / 10초 = 6)
+    private final int calmForecastCycles;       // 예측을 몇 번에 한 번 다시 넣는가 (10분 / 60초 = 10)
+
     private long tickCount = 0;
 
     public DemoStubScheduler(DemoScenarioState state, DemoScenarioService scenarioService, DemoInternalApi api,
@@ -78,7 +84,8 @@ public class DemoStubScheduler {
                              @Value("${puf.demo.calm-forecast-minutes:10}") int calmForecastMinutes,
                              @Value("${puf.demo.calm-max-score:75}") double calmMaxScore,
                              @Value("${puf.demo.calm-step:10}") double calmStep,
-                             @Value("${puf.demo.model-stub-enabled:true}") boolean modelStubEnabled, DemoWaterProfile waterProfile) {
+                             @Value("${puf.demo.model-stub-enabled:true}") boolean modelStubEnabled, DemoWaterProfile waterProfile,
+                             @Value("${puf.demo.calm-update-seconds:60}") int calmUpdateSeconds) {
         this.waterProfile=waterProfile;
         this.state = state;
         this.scenarioService = scenarioService;
@@ -94,6 +101,8 @@ public class DemoStubScheduler {
         this.calmMaxScore = calmMaxScore;
         this.calmStep = calmStep;
         this.modelStubEnabled = modelStubEnabled;
+        this.calmSlots = Math.max(1, calmUpdateSeconds / TICK_SECONDS);
+        this.calmForecastCycles = Math.max(1, calmForecastEvery / this.calmSlots);
     }
 
     // 평상시 점수: 중간값(35) 쪽으로 살짝 끌려가면서 매번 조금씩(±calmStep 정도) 움직인다. 바닥은 baseline, 위는 calmMaxScore
@@ -110,8 +119,16 @@ public class DemoStubScheduler {
         return Math.max(1, minutes * 60 / TICK_SECONDS);
     }
 
+    /** 시연 초기화: 평상시 점수 기억값을 비운다 */
+    public void forgetState() {
+        calmScores.clear();
+    }
+
     @Scheduled(initialDelay = 15_000, fixedDelay = TICK_SECONDS * 1000L)
     public void tick() {
+        if (DemoResetService.isResetting()) {
+            return;
+        }
         try {
             run();
         } catch (RuntimeException e) {
@@ -129,10 +146,12 @@ public class DemoStubScheduler {
         if (state.finished()) {
             scenarioService.finishNow();
         }
+        boolean resetAll = false;
         if (state.takeReset()) {
             calmScore = true;
             calmWater = true;
             calmForecast = true;
+            resetAll = true;   // 시나리오가 끝난 직후: 모든 지하차도를 이번 tick 에 평상시 값으로 되돌린다
         }
 
         DemoScenarioState.Run r = state.current();
@@ -159,12 +178,20 @@ public class DemoStubScheduler {
         if (pinned != null) {
             pinned.refreshPinned();   // 버튼으로 단계를 고정한 지하차도는 같은 값을 계속 넣는다
         }
-        for (Long uid : allUnderpasses) {
+        for (int idx = 0; idx < allUnderpasses.size(); idx++) {
+            Long uid = allUnderpasses.get(idx);
             if (pinned != null && pinned.isPinned(uid)) {
-                continue;   // 고정된 곳은 평상시 랜덤·호우 시나리오가 덮어쓰지 않는다
+                continue;   // 고정된 곳은 평상시 값·호우 시나리오가 덮어쓰지 않는다
             }
             boolean active = r != null && state.isUnderpassActive(uid);
             try {
+                if (!active && modelStubEnabled) {
+                    // 평상시: 자기 차례(약 1분에 한 번)인 지하차도만 보낸다. 점수·수위·강수는 같은 단계에 맞춰 함께.
+                    if (resetAll || idx % calmSlots == n % calmSlots) {
+                        calmUpdate(uid, resetAll || (n / calmSlots + idx) % calmForecastCycles == 0);
+                    }
+                    continue;
+                }
                 if (modelStubEnabled && (active || calmScore)) {
                     modelStub(uid, active);
                 }
@@ -185,6 +212,63 @@ public class DemoStubScheduler {
                 streamPublisher.dataChangedPublic(null, "demo-scenario", "UPDATE", null);
             }
         }
+    }
+
+    // 평상시 한 번 보내기: 수위 → 점수(+강수) → (가끔) 예측. DemoCalmProfile 의 같은 단계 값이라 단계가 바뀌지 않는다
+    private void calmUpdate(Long uid, boolean withForecast) {
+        state.resetScore(uid);
+        long sec = dbClock.now().toEpochSecond(ZoneOffset.UTC);
+        double water = DemoCalmProfile.waterCm(uid, sec);
+        double rain = DemoCalmProfile.rainMmH(uid, sec);
+        LocalDateTime now = dbClock.now().truncatedTo(ChronoUnit.MILLIS);
+
+        waterProfile.sync(uid, water);
+        Map<String, Object> w = new LinkedHashMap<>();
+        w.put("underpassId", uid);
+        w.put("levelCm", dec(water, 1));
+        w.put("measuredAt", now);
+        api.postWaterLevel(w);
+
+        double[] acc = DemoCalmProfile.accumulations(rain);
+        Map<String, Object> s = new LinkedHashMap<>();
+        s.put("underpassId", uid);
+        s.put("riskScore", dec(DemoCalmProfile.score(uid, sec), 2));
+        s.put("rainfallMm", dec(rain, 1));
+        String[] keys = {"rainfall1hMm", "rainfall3hMm", "rainfall6hMm", "rainfall12hMm", "rainfall24hMm"};
+        for (int i = 0; i < keys.length; i++) {
+            s.put(keys[i], dec(acc[i], 1));
+        }
+        s.put("predictedAt", now);
+        api.postRiskScore(s);
+
+        if (!withForecast) {
+            return;
+        }
+        JsonNode forecast = api.forecast(uid);
+        if (forecast == null || !forecast.isArray()) {
+            return;
+        }
+        double score = DemoCalmProfile.score(uid, sec);
+        List<Map<String, Object>> items = new ArrayList<>();
+        int count = 0;
+        for (JsonNode f : forecast) {
+            if (count++ >= FORECAST_HOURS) {
+                break;
+            }
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("targetAt", f.get("targetAt"));
+            item.put("riskScore", dec(score, 2));
+            item.put("rainfallMm", dec(DemoCalmProfile.forecastMm(rain, count), 1));
+            items.add(item);
+        }
+        if (items.isEmpty()) {
+            return;
+        }
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("underpassId", uid);
+        body.put("predictedAt", now);
+        body.put("items", items);
+        api.postRiskForecast(body);
     }
 
     // 침수모델 흉내: 강수(내부 API)를 읽어 위험점수를 계산해 보낸다

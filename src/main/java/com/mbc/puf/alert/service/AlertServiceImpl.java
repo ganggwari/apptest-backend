@@ -158,7 +158,7 @@ public class AlertServiceImpl implements AlertService {
         }
         Long alertId = alert.getId();
         pushService.sendAfterCommit(tokens, new PushMessage(
-                alertType == AlertType.FINAL ? "지하차도 진입 직전 알림" : "지하차도 접근 알림",
+                alertType == AlertType.FINAL ? "진입 직전 알림" : "접근 알림",
                 (underpassName == null ? "" : underpassName + " · ") + carNum
                         + (cameraText == null ? "" : " · " + cameraText)
                         + (reason == null || reason.isBlank() ? "" : " · 사유: " + reason),

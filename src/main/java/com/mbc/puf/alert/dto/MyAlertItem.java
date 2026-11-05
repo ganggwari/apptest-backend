@@ -80,7 +80,7 @@ public class MyAlertItem {
                 return String.format("[긴급재난문자] %s 접근 중입니다(차량 %s). 현재 통제 중이니 안전하게 감속 후 우회해 주세요.%s",
                         underpassName, carNum, why);
             }
-            return String.format("[긴급재난문자] %s 접근 중입니다(차량 %s). 현재 위험 단계이니 안전하게 감속 후 우회를 권장합니다.",
+            return String.format("[긴급재난문자] %s 접근 중입니다(차량 %s). 현재 침수 위험이 높아 우회를 권장합니다.",
                     underpassName, carNum);
         }
         return String.format("[긴급재난문자] %s 진입 직전입니다(차량 %s). 현재 통제 중이니 안전하게 감속 후 우회해 주세요.%s",
